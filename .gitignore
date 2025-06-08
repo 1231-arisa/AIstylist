@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+
+# Output files
+output/
+*.png
+*.jpg
+*.jpeg
+
+# Input files
+input/
+
+# Model files
+saved_models/
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+jupyter/
+
+# OS
+.DS_Store
+Thumbs.db 
