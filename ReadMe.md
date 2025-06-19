@@ -5,8 +5,9 @@ emoji: 👔
 colorFrom: indigo
 colorTo: purple
 sdk: docker
-python_version: "3.12"
+sdk_version: 28.1.1
 app_port: 7860
+app_file: run.py
 pinned: false
 ---
 
