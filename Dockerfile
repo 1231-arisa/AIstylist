@@ -18,9 +18,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application
 COPY . .
 
-# Make sure static files are properly handled
-RUN python -m tailwindcss -i ./static/css/tailwind.css -o ./static/css/main.css
-
 # Set environment variables
 ENV FLASK_APP=run.py
 ENV FLASK_ENV=production

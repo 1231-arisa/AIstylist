@@ -15,7 +15,7 @@ pinned: false
 
 An AI-powered personal stylist application built with Flask. This application helps users manage their virtual wardrobe and get personalized outfit recommendations.
 
-https://https://aistylist_aistylist.hf.space/
+https://aistylist-aistylist.hf.space/
 
 ## Features
 
