@@ -1,0 +1,10 @@
+#photo-placeholder {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 1rem;
+}
+
+#camera-button {
+    display: block;
+    margin: 0 auto;
+}

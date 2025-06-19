@@ -14,7 +14,18 @@
             </div>
             <p class="text-sm font-medium mb-1">Upload an outfit photo</p>
             <p class="text-xs text-[#9A9A9A] mb-4 text-center">Take a photo or upload from your gallery</p>
-            <button class="bg-[#E8D0D0] hover:bg-[#E0C0C0] text-[#333333] rounded-full px-4 py-2">Choose Photo</button>
+            <input type="file" id="photoInput" accept="image/*" style="display: none;">
+            <div class="flex gap-2">
+                <button onclick="openCamera()"
+                        class="bg-[#E8D0D0] hover:bg-[#E0C0C0] text-[#333333] rounded-full px-4 py-2">
+                    Take Photo
+                </button>
+                <button onclick="openGallery()"
+                        class="bg-[#F5F0E8] hover:bg-[#E8E0D5] text-[#333333] rounded-full px-4 py-2">
+                    Choose from Gallery
+                </button>
+            </div>
+            <img id="photoPreview" class="mt-4 max-w-full h-auto rounded-lg" style="display: none;">
         </div>
     </div>
 
@@ -41,7 +52,7 @@
 
         <div class="flex gap-2">
             <div class="relative flex-grow">
-                <input type="text" placeholder="Ask anything about fashion..." 
+                <input type="text" placeholder="Ask anything about fashion..."
                        class="w-full rounded-full border-[#E8E8E8] focus:ring-[#E8D0D0] focus:border-[#E8D0D0] px-4 py-2">
             </div>
             <button class="rounded-full bg-[#E8D0D0] hover:bg-[#E0C0C0] text-[#333333] px-4 py-2">Send</button>
@@ -64,3 +75,17 @@
         </div>
     </div>
 </div>
+
+<script>
+    function openCamera() {
+        // Trigger the takePhotoBtn click event from camera.js
+        $('#takePhotoBtn').trigger('click');
+    }
+
+    function openGallery() {
+        // Trigger the galleryBtn click event from camera.js
+        $('#galleryBtn').trigger('click');
+    }
+
+    // The photo input change handler is now handled in camera.js
+</script>
