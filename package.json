@@ -1,0 +1,13 @@
+{
+  "name": "ai-stylist-flask",
+  "version": "1.0.0",
+  "description": "AI Stylist Flask App",
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/css/tailwind.css -o ./static/css/main.css --minify",
+    "watch:css": "tailwindcss -i ./static/css/tailwind.css -o ./static/css/main.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.1",
+    "tailwindcss-animate": "^1.0.7"
+  }
+}

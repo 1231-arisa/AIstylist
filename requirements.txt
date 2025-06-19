@@ -1,0 +1,6 @@
+Flask==3.0.0
+Flask-Assets==2.1.0
+Werkzeug==3.0.0
+python-dotenv==1.0.0
+webassets==2.0
+gunicorn==21.2.0

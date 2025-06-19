@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-[#FAFAFA] text-[#333333] font-sans">
+    <div class="tabs" data-active-tab="home">
+        <!-- Main Content -->
+        <div class="pb-20">
+            <!-- Home Tab -->
+            <div class="tab-content" data-tab="home">
+                <div class="p-4 pt-12">
+                    <!-- Header -->
+                    {% include "partials/header.html" %}
+
+                    <!-- Today's Outfit -->
+                    {% include "partials/outfit.html" %}
+
+                    <!-- Quick Actions -->
+                    {% include "partials/quick_actions.html" %}
+                </div>
+            </div>
+
+            <!-- Chat Tab -->
+            <div class="tab-content hidden" data-tab="chat">
+                {% include "partials/chat.html" %}
+            </div>
+
+            <!-- Closet Tab -->
+            <div class="tab-content hidden" data-tab="closet">
+                {% include "partials/closet.html" %}
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        {% include "partials/navigation.html" %}
+    </div>
+</div>
+{% endblock %}

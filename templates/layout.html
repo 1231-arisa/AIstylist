@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stylistly - Your Personal Fashion AI Assistant</title>
+    <meta name="description" content="Get personalized outfit recommendations and fashion advice">    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        .add-item-button-container {
+            position: relative;
+            z-index: 9999;
+        }
+        
+        .add-item-button-container button {
+            position: fixed !important;
+            bottom: 5rem !important;
+            right: 1rem !important;
+            width: 3rem !important;
+            height: 3rem !important;
+            background-color: #E8D0D0 !important;
+            border-radius: 9999px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+            z-index: 9999 !important;
+        }
+        
+        .add-item-button-container button:hover {
+            background-color: #E0C0C0 !important;
+        }
+        
+        .tab-content[data-tab="closet"] {
+            position: relative !important;
+        }
+        
+        .hidden .add-item-button-container {
+            display: none !important;
+        }
+        
+        .tab-content[data-tab="closet"]:not(.hidden) .add-item-button-container {
+            display: block !important;
+        }
+    </style>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="/static/js/theme.js"></script>
+</head>
+<body class="font-inter">    <div class="theme-provider" data-theme="light">        {% block content %}{% endblock %}
+    </div>
+    <script>
+        // Initialize Lucide icons after DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
