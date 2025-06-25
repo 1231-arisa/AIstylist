@@ -14,7 +14,7 @@ def load_closet_txts(closet_dir):
             items.append({'file': fname, 'desc': desc})
     return items
 
-def select_outfit(criteria, closet_dir="gpt-4o_image1/data/clothes/input"):
+def select_outfit(criteria, closet_dir="data/clothes/input"):
     items = load_closet_txts(closet_dir)
     # Prioritize dress, otherwise top + bottom
     dress = [i for i in items if "dress" in i['desc'].lower()]
