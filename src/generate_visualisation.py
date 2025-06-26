@@ -23,12 +23,14 @@ def generate_image(prompt, api_key):
     print("Generating image with gpt-image-1...")
     client = OpenAI(api_key=api_key)
     try:
-        # Simplified parameters to avoid unsupported parameter errors
         response = client.images.generate(
             model="gpt-image-1",
             prompt=prompt
         )
-        # Check if b64_json is available in the response
+        print("API response:", response)
+        if not response or not hasattr(response, "data") or not response.data:
+            print("No data in API response. Full response:", response)
+            sys.exit(1)
         if hasattr(response.data[0], 'b64_json') and response.data[0].b64_json:
             image_base64 = response.data[0].b64_json
             return base64.b64decode(image_base64)
