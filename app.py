@@ -1,123 +1,165 @@
-from flask import Flask, render_template, request, jsonify
-from werkzeug.utils import secure_filename
+"""
+AIstylist - Main Application
+統合されたフロントエンドとバックエンドのWebアプリケーション
+"""
+
 import os
-from datetime import datetime
-import sqlite3
-import requests
+import sys
+import base64
+import datetime
+import glob
+from flask import Flask, render_template, request, jsonify, send_from_directory, current_app
+from werkzeug.utils import secure_filename
+from openai import OpenAI
+from dotenv import load_dotenv
 
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# バックエンド機能のインポート
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+from generate_item import analyze_image
+from style_agent import select_outfit, load_closet_txts
+from generate_visualisation import generate_image, sanitize_prompt
 
-DATABASE = 'items.db'
-OPENWEATHERMAP_API_KEY = os.environ.get('OPENWEATHERMAP_API_KEY', 'YOUR_API_KEY_HERE')  # Replace with your API key or set as env var
+# 環境変数の読み込み
+load_dotenv()
 
-def init_db():
-    conn = sqlite3.connect(DATABASE)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        image TEXT NOT NULL,
-        short_name TEXT NOT NULL,
-        short_desc TEXT,
-        long_desc TEXT
-    )''')
-    conn.commit()
-    conn.close()
-
-def insert_sample_items():
-    conn = sqlite3.connect(DATABASE)
-    c = conn.cursor()
-    sample_items = [
-        ('20250612190908_images.jpg', 'Red Dress', 'A stylish red dress.', 'A beautiful, elegant red dress perfect for evening occasions.'),
-        ('20250612191101_photo.jpg', 'Blue Jeans', 'Classic blue jeans.', 'Comfortable and durable blue jeans for everyday wear.'),
-    ]
-    for img, short, short_desc, long_desc in sample_items:
-        c.execute('SELECT COUNT(*) FROM items WHERE image=?', (img,))
-        if c.fetchone()[0] == 0:
-            c.execute('INSERT INTO items (image, short_name, short_desc, long_desc) VALUES (?, ?, ?, ?)', (img, short, short_desc, long_desc))
-    conn.commit()
-    conn.close()
-
-def get_weather(lat, lon):
-    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHERMAP_API_KEY}&units=metric"
-    try:
-        resp = requests.get(url, timeout=5)
-        if resp.status_code == 200:
-            data = resp.json()
-            weather = data['weather'][0]['main']
-            temp = data['main']['temp']
-            return {'weather': weather, 'temp': temp}
-        else:
-            return None
-    except Exception:
-        return None
-
-init_db()
-insert_sample_items()
-
-@app.route('/')
-def main():
-    return render_template('main.html')
-
-@app.route('/add_to_library')
-def add_to_library():
-    return render_template('add_to_library.html')
-
-@app.route('/upload', methods=['POST'])
-def upload():
-    image = request.files.get('image')
-    lat = request.form.get('lat')
-    lon = request.form.get('lon')
-    if image:
-        filename = datetime.now().strftime('%Y%m%d%H%M%S_') + secure_filename(image.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        image.save(filepath)
-        return jsonify({'status': 'success', 'filename': filename, 'lat': lat, 'lon': lon})
-    return jsonify({'status': 'error', 'message': 'No image uploaded'})
-
-@app.route('/chat', methods=['GET', 'POST'])
-def chat():
-    if request.method == 'POST':
-        user_msg = request.form.get('message', '')
-        # Placeholder AI response
-        reply = f"I'm your AI Stylist! You said: {user_msg}"
-        return jsonify({'reply': reply})
-    return render_template('chat.html')
-
-@app.route('/library_editor')
-def library_editor():
-    conn = sqlite3.connect(DATABASE)
-    c = conn.cursor()
-    c.execute('SELECT id, image, short_name, short_desc, long_desc FROM items')
-    items = c.fetchall()
-    conn.close()
-    return render_template('library_editor.html', items=items)
-
-@app.route('/suggestion', methods=['GET', 'POST'])
-def suggestion():
-    if request.method == 'POST':
+def create_app():
+    app = Flask(__name__)
+    
+    # 設定
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+    app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'data', 'clothes', 'input')
+    app.config['OUTPUT_FOLDER'] = os.path.join(os.path.dirname(__file__), 'output')
+    
+    # ディレクトリの作成
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+    
+    # OpenAI APIキーの確認
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("Warning: OPENAI_API_KEY not found in environment variables")
+    
+    @app.route('/')
+    def index():
+        """メインページ"""
+        return render_template('home.html')
+    
+    @app.route('/upload', methods=['POST'])
+    def upload_clothing():
+        """服の画像をアップロードして分析"""
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if file:
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            
+            try:
+                # 画像を分析
+                description = analyze_image(filepath, api_key)
+                
+                # 説明をテキストファイルとして保存
+                txt_filename = os.path.splitext(filename)[0] + '.txt'
+                txt_filepath = os.path.join(app.config['UPLOAD_FOLDER'], txt_filename)
+                with open(txt_filepath, 'w', encoding='utf-8') as f:
+                    f.write(description)
+                
+                return jsonify({
+                    'success': True,
+                    'filename': filename,
+                    'description': description,
+                    'message': 'Clothing item analyzed successfully'
+                })
+                
+            except Exception as e:
+                return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+    
+    @app.route('/generate-outfit', methods=['POST'])
+    def generate_outfit():
+        """天候とシーンに基づいてアウトフィットを生成"""
         data = request.get_json()
-        lat = data.get('lat')
-        lon = data.get('lon')
-        weather_info = get_weather(lat, lon)
-        # For demo: pick a random item from the DB as suggestion
-        import random
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
-        c.execute('SELECT image, short_name, short_desc FROM items ORDER BY RANDOM() LIMIT 1')
-        row = c.fetchone()
-        conn.close()
-        if row:
-            image_url = f"/static/uploads/{row[0]}"
-            if weather_info:
-                text = f"{row[1]}: {row[2]}\nWeather: {weather_info['weather']}, {weather_info['temp']}°C"
-            else:
-                text = f"{row[1]}: {row[2]}"
-            return jsonify({'image': image_url, 'text': text})
-        else:
-            return jsonify({'image': '', 'text': 'No suggestion available.'})
-    return render_template('suggestion.html')
+        weather = data.get('weather', '')
+        occasion = data.get('occasion', '')
+        
+        try:
+            # スタイル選択
+            criteria = {'weather': weather, 'occasion': occasion}
+            selected_items = select_outfit(criteria, app.config['UPLOAD_FOLDER'])
+            
+            if not selected_items:
+                return jsonify({'error': 'No suitable outfit found'}), 404
+            
+            # アバターファイルのパス
+            avatar_path = os.path.join(os.path.dirname(__file__), 'data', 'avatar.txt')
+            
+            # 選択された服のパス
+            clothing_paths = [os.path.join(app.config['UPLOAD_FOLDER'], item) for item in selected_items]
+            
+            # 画像生成
+            try:
+                # テキストファイルの内容を読み込み
+                texts = []
+                for path in [avatar_path] + clothing_paths:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        texts.append(f.read().strip())
+                
+                # プロンプトを組み合わせてサニタイズ
+                raw_prompt = "\n".join(texts)
+                prompt = sanitize_prompt(raw_prompt)
+                
+                # 画像生成
+                image_bytes = generate_image(prompt, api_key)
+                
+                # 画像を保存
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_filename = f"styled_avatar_{timestamp}.png"
+                output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+                
+                with open(output_path, "wb") as f:
+                    f.write(image_bytes)
+                
+                return jsonify({
+                    'success': True,
+                    'image_url': f'/output/{output_filename}',
+                    'selected_items': selected_items,
+                    'message': 'Outfit generated successfully'
+                })
+                
+            except Exception as e:
+                return jsonify({'error': f'Image generation failed: {str(e)}'}), 500
+                
+        except Exception as e:
+            return jsonify({'error': f'Outfit generation failed: {str(e)}'}), 500
+    
+    @app.route('/closet')
+    def get_closet():
+        """クローゼットの内容を取得"""
+        try:
+            items = load_closet_txts(app.config['UPLOAD_FOLDER'])
+            return jsonify({
+                'success': True,
+                'items': items
+            })
+        except Exception as e:
+            return jsonify({'error': f'Failed to load closet: {str(e)}'}), 500
+    
+    @app.route('/output/<filename>')
+    def serve_output(filename):
+        """生成された画像を提供"""
+        return send_from_directory(app.config['OUTPUT_FOLDER'], filename)
+    
+    @app.route('/static/<path:filename>')
+    def serve_static(filename):
+        """静的ファイルを提供"""
+        return send_from_directory('static', filename)
+    
+    return app
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app = create_app()
+    app.run(debug=True, host='127.0.0.1', port=5000) 

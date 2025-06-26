@@ -1,0 +1,46 @@
+<!-- Today's Outfit -->
+<div class="mb-8">
+    <h2 class="text-lg font-light mb-4">Today's Outfit Recommendation</h2>
+    <div class="outfit-carousel rounded-3xl border-0 shadow-sm overflow-hidden">
+        <div class="relative">
+            <!-- Outfit Navigation -->
+            <button onclick="prevOutfit()" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center z-10">
+                <i data-lucide="chevron-left" class="w-4 h-4 text-[#9A9A9A]"></i>
+            </button>
+            <button onclick="nextOutfit()" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center z-10">
+                <i data-lucide="chevron-right" class="w-4 h-4 text-[#9A9A9A]"></i>
+            </button>
+
+            <!-- Outfit Image -->
+            <div class="bg-[#F5F0E8] h-[450px] flex items-center justify-center">
+                {% for outfit in outfits %}
+                <div class="outfit-slide {% if loop.index0 == 0 %}active{% endif %}" data-index="{{ loop.index0 }}">
+                    <img src="{{ outfit.image }}" alt="{{ outfit.name }}" class="h-[400px] w-auto object-contain">
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Outfit Info -->
+            <div class="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-medium outfit-name"></h3>
+                        <div class="flex items-center gap-2 mt-1">
+                            <div class="flex items-center gap-1">
+                                <i data-lucide="sun" class="w-3 h-3 text-[#9A9A9A]"></i>
+                                <span class="text-xs text-[#9A9A9A] outfit-weather"></span>
+                            </div>
+                            <span class="text-xs text-[#9A9A9A]">•</span>
+                            <span class="text-xs text-[#9A9A9A] outfit-occasion"></span>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 outfit-dots">
+                        {% for outfit in outfits %}
+                        <div class="w-1.5 h-1.5 rounded-full {% if loop.index0 == 0 %}bg-[#E8D0D0]{% else %}bg-[#E8E8E8]{% endif %}"></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

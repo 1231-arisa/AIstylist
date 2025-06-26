@@ -1,0 +1,32 @@
+/* Custom styles */
+.outfit-slide {
+    display: none;
+}
+
+.outfit-slide.active {
+    display: block;
+}
+
+.tab-btn.active {
+    color: #E8D0D0;
+}
+
+.tab-btn:not(.active) {
+    color: #9A9A9A;
+}
+
+/* Transitions */
+.tab-content {
+    transition: opacity 0.3s ease-in-out;
+}
+
+.outfit-slide {
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+    .grid-cols-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

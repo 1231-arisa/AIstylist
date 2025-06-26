@@ -1,0 +1,91 @@
+<!-- Chat Section -->
+<div class="p-4 pt-12">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-light tracking-wide">Chat with AIstylist</h1>
+        <p class="text-sm text-[#9A9A9A]">Get personalized fashion advice</p>
+    </div>
+
+    <!-- Upload Area -->
+    <div class="rounded-3xl border-0 shadow-sm p-6 mb-6">
+        <div class="border-2 border-dashed border-[#E8E8E8] rounded-2xl p-8 flex flex-col items-center justify-center">
+            <div class="w-12 h-12 rounded-full bg-[#F5F0E8] flex items-center justify-center mb-4">
+                <i data-lucide="camera" class="w-6 h-6 text-[#9A9A9A]"></i>
+            </div>
+            <p class="text-sm font-medium mb-1">Upload an outfit photo</p>
+            <p class="text-xs text-[#9A9A9A] mb-4 text-center">Take a photo or upload from your gallery</p>
+            <input type="file" id="photoInput" accept="image/*" style="display: none;">
+            <div class="flex gap-2">
+                <button onclick="openCamera()"
+                        class="bg-[#E8D0D0] hover:bg-[#E0C0C0] text-[#333333] rounded-full px-4 py-2">
+                    Take Photo
+                </button>
+                <button onclick="openGallery()"
+                        class="bg-[#F5F0E8] hover:bg-[#E8E0D5] text-[#333333] rounded-full px-4 py-2">
+                    Choose from Gallery
+                </button>
+            </div>
+            <img id="photoPreview" class="mt-4 max-w-full h-auto rounded-lg" style="display: none;">
+        </div>
+    </div>
+
+    <!-- Conversation -->
+    <div class="rounded-3xl border-0 shadow-sm p-4 mb-6">
+        <div class="space-y-4 max-h-[300px] overflow-y-auto mb-4">
+            <div class="bg-[#F5F0E8] rounded-2xl p-3 max-w-[80%]">
+                <p class="text-sm">Hello! How can I help with your style today?</p>
+                <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • 10:30 AM</p>
+            </div>
+            <div class="bg-[#E8E8E8] rounded-2xl p-3 max-w-[80%] ml-auto">
+                <p class="text-sm">I need help with accessories for a beige dress</p>
+                <p class="text-xs text-[#9A9A9A] mt-1">You • 10:31 AM</p>
+            </div>
+            <div class="bg-[#F5F0E8] rounded-2xl p-3 max-w-[80%]">
+                <p class="text-sm">
+                    For a beige dress, I'd recommend gold or pearl accessories. A delicate gold necklace and small
+                    earrings would create an elegant look. You could also add a thin belt in a complementary color to
+                    define your waist.
+                </p>
+                <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • 10:32 AM</p>
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <div class="relative flex-grow">
+                <input type="text" placeholder="Ask anything about fashion..."
+                       class="w-full rounded-full border-[#E8E8E8] focus:ring-[#E8D0D0] focus:border-[#E8D0D0] px-4 py-2">
+            </div>
+            <button class="rounded-full bg-[#E8D0D0] hover:bg-[#E0C0C0] text-[#333333] px-4 py-2">Send</button>
+        </div>
+    </div>
+
+    <!-- Suggested Questions -->
+    <div>
+        <h3 class="text-sm font-medium mb-3">Suggested Questions</h3>
+        <div class="flex flex-wrap gap-2">
+            <span class="bg-[#F5F0E8] text-[#333333] hover:bg-[#E8E0D5] rounded-full px-3 py-1 text-sm">
+                What colors match with gray?
+            </span>
+            <span class="bg-[#F5F0E8] text-[#333333] hover:bg-[#E8E0D5] rounded-full px-3 py-1 text-sm">
+                How to style a white blouse?
+            </span>
+            <span class="bg-[#F5F0E8] text-[#333333] hover:bg-[#E8E0D5] rounded-full px-3 py-1 text-sm">
+                Casual outfit ideas
+            </span>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openCamera() {
+        // Trigger the takePhotoBtn click event from camera.js
+        $('#takePhotoBtn').trigger('click');
+    }
+
+    function openGallery() {
+        // Trigger the galleryBtn click event from camera.js
+        $('#galleryBtn').trigger('click');
+    }
+
+    // The photo input change handler is now handled in camera.js
+</script>

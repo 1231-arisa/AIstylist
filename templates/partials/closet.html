@@ -1,0 +1,65 @@
+<!-- Closet Section -->
+<div class="p-4 pt-12">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-light tracking-wide">My Closet</h1>
+        <p class="text-sm text-[#9A9A9A]">All your saved items</p>
+    </div>
+
+    <!-- Search -->
+    <div class="relative mb-6">
+        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9A9A9A]"></i>
+        <input type="text" placeholder="Search your closet..." 
+               class="w-full pl-10 rounded-full border-[#E8E8E8] focus:ring-[#E8D0D0] focus:border-[#E8D0D0]">
+    </div>
+
+    <!-- Categories -->
+    <div class="mb-6 overflow-x-auto">
+        <div class="flex gap-2 min-w-max">
+            {% for category in categories %}
+            <button data-category="{{ category }}"
+                    class="category-btn rounded-full px-4 py-1 h-auto text-sm border {% if category == 'All' %}bg-[#E8D0D0] text-[#333333] border-[#E8D0D0]{% else %}bg-transparent text-[#9A9A9A] border-[#E8E8E8]{% endif %}">
+                {{ category }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>    <!-- Closet Grid -->
+    <div class="grid grid-cols-3 gap-4">
+        {% for item in closet_items %}
+        <div class="rounded-2xl border-0 shadow-sm overflow-hidden closet-item" data-category="{{ item.category }}">
+            <div class="{{ item.color }} h-32 flex items-center justify-center">
+                <i data-lucide="shopping-bag" class="w-8 h-8 text-[#9A9A9A]"></i>
+            </div>
+            <div class="p-2">
+                <p class="text-xs font-medium truncate">{{ item.name }}</p>
+                <p class="text-xs text-[#9A9A9A]">{{ item.category }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>    <!-- Add Item Floating Button -->
+    <div class="add-item-button-container" style="position: relative; z-index: 9999;">
+        <button 
+            class="fixed bottom-20 right-4 w-12 h-12 bg-[#E8D0D0] hover:bg-[#E0C0C0] text-[#333333] rounded-full flex items-center justify-center shadow-lg"
+            title="Add New Item"
+            aria-label="Add New Item"
+            style="position: fixed !important;">
+            <i data-lucide="plus" class="w-6 h-6"></i>
+        </button>
+    </div>
+</div>
+
+<style>
+    .tab-content[data-tab="closet"] {
+        position: relative !important;
+    }
+    
+    .add-item-button-container {
+        position: relative;
+        z-index: 9999;
+    }
+    
+    .add-item-button-container button {
+        position: fixed !important;
+        z-index: 9999 !important;
+    }
+</style>

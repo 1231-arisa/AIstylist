@@ -1,7 +1,12 @@
-Flask
-Werkzeug
-requests
+# Core dependencies for AIstylist project
+Flask==3.0.0
+Werkzeug==3.0.0
+requests==2.31.0
 
-# Main dependencies for AIstylist
-openai>=1.0.0
-python-dotenv>=1.0.0 
+# OpenAI API dependencies
+openai==1.92.2
+python-dotenv==1.1.1
+
+# Image processing dependencies (minimal set)
+Pillow==11.2.1
+numpy==1.26.4 
