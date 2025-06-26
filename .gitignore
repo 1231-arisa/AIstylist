@@ -1,2 +1,4 @@
-# Ignore environment variable files
-.env 
+.venv
+static/uploads
+.env
+items.db

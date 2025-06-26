@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}My Stylist Library{% endblock %}
+{% block content %}
+<h3 class="text-center mb-4">My Stylist Library</h3>
+<div class="d-grid gap-3">
+    <a href="/suggestion" class="btn btn-success btn-lg" id="suggestionBtn">Get Suggestion for Today</a>
+    <a href="/library_editor" class="btn btn-info btn-lg">Edit Items Library</a>
+    <a href="/chat" class="btn btn-warning btn-lg">Chat with AI Stylist</a>
+</div>
+<div id="suggestionResult" class="mt-4"></div>
+{% endblock %}
+{% block scripts %}
+<!-- No extra JS needed for suggestion button, handled by link -->
+{% endblock %}
