@@ -1,167 +1,162 @@
 # AIstylist - AI-Powered Fashion Coordination
 
-AIstylistは、AIを使用してファッションコーディネーションを自動生成するプロジェクトです。OpenAIのGPT-4oとDALL-Eを使用して、アバターに服を着せたスタイリッシュなイラストを生成します。
+AIstylist is a project that automatically generates fashion outfit recommendations using AI. It leverages OpenAI's GPT-4o and DALL-E to generate stylish illustrations of avatars wearing your clothes.
 
-## 機能
+## Features
 
-- **服の分析**: GPT-4oを使用して服の画像を詳細に分析
-- **スタイル選択**: 天候やシーンに応じた服の組み合わせを自動選択
-- **画像生成**: DALL-Eを使用してスタイリッシュなファッションイラストを生成
-- **Webアプリケーション**: 直感的なUIで簡単に操作可能
+- **Clothing Analysis**: Analyze clothing images in detail using GPT-4o
+- **Style Selection**: Automatically select outfit combinations based on weather and occasion
+- **Image Generation**: Generate stylish fashion illustrations using DALL-E
+- **Web Application**: Intuitive UI for easy operation
 
-## 環境設定
+## Setup
 
-### 前提条件
-- Python 3.11以上
-- OpenAI API キー
+### Prerequisites
+- Python 3.11+
+- OpenAI API Key
 
-### セットアップ
+### Installation
 
-1. **リポジトリのクローン**
+1. **Clone the repository**
 ```bash
 git clone <repository-url>
 cd AIstylist
 ```
 
-2. **仮想環境の作成とアクティベート**
+2. **Create and activate a virtual environment**
 ```bash
 python -m venv venv
-.\venv\Scripts\Activate.ps1  # Windows
-# source venv/bin/activate   # Linux/Mac
+# Windows:
+.\venv\Scripts\Activate.ps1
+# Linux/Mac:
+# source venv/bin/activate
 ```
 
-3. **依存関係のインストール**
+3. **Install dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **環境変数の設定**
-`.env`ファイルを作成し、OpenAI APIキーを設定：
+4. **Set environment variables**
+Create a `.env` file and set your OpenAI API key:
 ```
 OPENAI_API_KEY=your_api_key_here
 ```
 
-## 使用方法
+## Usage
 
-### Webアプリケーション（推奨）
+### Web Application (Recommended)
 
-1. **アプリケーションの起動**
+1. **Start the application**
 ```bash
 python app.py
 ```
 
-2. **ブラウザでアクセス**
+2. **Access in your browser**
 ```
 http://127.0.0.1:5000
 ```
 
-3. **機能の使用**
-   - **服のアップロード**: 「Upload Clothing」ボタンで服の画像をアップロード
-   - **アウトフィット生成**: 「Generate Outfit」ボタンで天候とシーンを選択してアウトフィットを生成
-   - **クローゼット管理**: アップロードした服の一覧を確認
+3. **Main Features**
+   - **Upload Clothing**: Upload clothing images with the "Upload Clothing" button
+   - **Generate Outfit**: Select weather and occasion to generate an outfit
+   - **Closet Management**: View your uploaded clothing items
 
-### コマンドライン（従来の方法）
+### Command Line (Legacy)
 
-1. **服の画像を準備**
-   - `data/clothes/input/`ディレクトリに服の画像を配置
+1. **Prepare clothing images**
+   - Place images in the `data/clothes/input/` directory
 
-2. **パイプラインの実行**
+2. **Run the pipeline**
 ```bash
 python run_full_pipeline.py
 ```
 
-### 個別の機能
+### Individual Features
 
-- **服の分析**: `python src/generate_item.py <image_path>`
-- **スタイル選択**: `python src/style_agent.py`
-- **画像生成**: `python src/generate_visualisation.py <avatar.txt> <clothing1.txt> <clothing2.txt>`
+- **Clothing Analysis**: `python src/generate_item.py <image_path>`
+- **Style Selection**: `python src/style_agent.py`
+- **Image Generation**: `python src/generate_visualisation.py <avatar.txt> <clothing1.txt> <clothing2.txt>`
 
-## プロジェクト構造
+## Project Structure
 
 ```
 AIstylist/
-├── app.py                    # メインのWebアプリケーション
+├── app.py                    # Main web application
 ├── data/
-│   ├── avatar.txt            # アバターの説明
-│   └── clothes/input/        # 服の画像
+│   ├── avatar.txt            # Avatar description
+│   └── clothes/input/        # Clothing images
 ├── src/
-│   ├── generate_item.py      # 服の分析
-│   ├── style_agent.py        # スタイル選択
-│   └── generate_visualisation.py  # 画像生成
-├── templates/                # HTMLテンプレート
-├── static/                   # CSS、JS、画像ファイル
-├── output/                   # 生成された画像
-├── requirements.txt          # メインの依存関係
-└── run_full_pipeline.py      # コマンドラインパイプライン
+│   ├── generate_item.py      # Clothing analysis
+│   ├── style_agent.py        # Style selection
+│   └── generate_visualisation.py  # Image generation
+├── templates/                # HTML templates
+├── static/                   # CSS, JS, images
+├── output/                   # Generated images
+├── requirements.txt          # Main dependencies
+└── run_full_pipeline.py      # Command line pipeline
 ```
 
-## API エンドポイント
+## API Endpoints
 
 ### POST /upload
-服の画像をアップロードして分析
+Upload and analyze a clothing image
 - **Content-Type**: multipart/form-data
-- **Parameters**: file (画像ファイル)
-- **Response**: JSON形式の分析結果
+- **Parameters**: file (image file)
+- **Response**: JSON analysis result
 
 ### POST /generate-outfit
-天候とシーンに基づいてアウトフィットを生成
+Generate an outfit based on weather and occasion
 - **Content-Type**: application/json
 - **Parameters**: weather, occasion
-- **Response**: 生成された画像のURL
+- **Response**: URL of the generated image
 
 ### GET /closet
-クローゼットの内容を取得
-- **Response**: アップロードされた服の一覧
+Get the contents of your closet
+- **Response**: List of uploaded clothing items
 
-## 依存関係
+## Dependencies
 
-### メイン環境
-- Flask==3.0.0 - Webフレームワーク
+- Flask==3.0.0 - Web framework
 - openai==1.92.2 - OpenAI API
-- Pillow==11.2.1 - 画像処理
-- numpy==1.26.4 - 数値計算
+- Pillow==11.2.1 - Image processing
+- numpy==1.26.4 - Numerical computation
 
-## 注意事項
+## Notes
 
-- OpenAI APIキーが必要です
-- 画像生成にはAPIクレジットが消費されます
-- 生成される画像はOpenAIのコンテンツポリシーに従います
-- アップロード可能な画像サイズは16MBまでです
+- An OpenAI API key is required
+- Image generation consumes API credits
+- Generated images must comply with OpenAI's content policy
+- Maximum upload image size is 16MB
 
-## トラブルシューティング
+## Troubleshooting
 
-### よくある問題
+1. **API Key Error**
+   - Make sure your `.env` file contains a valid API key
+   - Ensure your API key has sufficient credits
 
-1. **APIキーエラー**
-   - `.env`ファイルに正しいAPIキーが設定されているか確認
-   - APIキーに十分なクレジットがあるか確認
+2. **Image Generation Error**
+   - Check that clothing descriptions are properly generated
+   - Ensure you are not violating OpenAI's content policy
 
-2. **画像生成エラー**
-   - 服の説明が適切に生成されているか確認
-   - OpenAIのコンテンツポリシーに違反していないか確認
+3. **Application Won't Start**
+   - Make sure your virtual environment is activated
+   - Ensure all dependencies are installed
 
-3. **アプリケーションが起動しない**
-   - 仮想環境がアクティベートされているか確認
-   - 依存関係が正しくインストールされているか確認
+## License
 
-## ライセンス
-
-このプロジェクトはMITライセンスの下で公開されています。
+This project is licensed under the MIT License.
 
 ## ✨ Features
 
 - 👗 **Personalized Outfit Suggestions**  
   Get AI-powered recommendations tailored to your preferences, body type, and occasion.
-
 - 🛍️ **Virtual Wardrobe**  
   Upload your wardrobe and let AIstylist create new looks from your own clothes.
-
 - 🎨 **Style Inspiration**  
   Discover trending styles and get inspired by curated looks.
-
 - 📸 **Image-Based Recommendations**  
   Upload a photo and receive suggestions to enhance or complement your style.
-
 - 🗣️ **Conversational Interface**  
   Chat with your AI stylist for instant advice and tips.
 
@@ -172,40 +167,23 @@ AIstylist/
    git clone https://github.com/yourusername/AIstylist.git
    cd AIstylist
    ```
-
 2. **Install dependencies**
    ```bash
-   # Example for Node.js
-   npm install
+   pip install -r requirements.txt
    ```
-
 3. **Run the application**
    ```bash
-   npm start
+   python app.py
    ```
-
-## 🖼️ Screenshots
-
-<!-- Add screenshots or GIFs here to showcase the app -->
 
 ## 🤖 Technologies Used
 
 - Artificial Intelligence / Machine Learning
-- Node.js / Python (adapt as appropriate)
-- React / Vue / Angular (adapt as appropriate)
-- Cloud Storage
+- Python
+- Flask
+- OpenAI API
+- Gradio (for Hugging Face Spaces)
 
 ## 📄 License
 
 This project is licensed under the MIT License.
-
-## 🙌 Contributing
-
-Contributions are welcome! Please open issues or submit pull requests for improvements.
-
-## 📬 Contact
-
-For questions or feedback, please contact [your.email@example.com](mailto:your.email@example.com).
-
----
-AIstylist — Your personal AI-powered fashion assistant.
