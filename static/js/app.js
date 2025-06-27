@@ -2,27 +2,55 @@
 
 // Modal functions
 function openUploadModal() {
-    document.getElementById('uploadModal').classList.remove('hidden');
+    const fileInput = document.getElementById('clothingFile');
+    const modal = document.getElementById('uploadModal');
+    if (fileInput && !fileInput.files.length) {
+        // ファイル未選択ならファイル選択ダイアログを開く
+        fileInput.click();
+        // ファイルが選ばれたらモーダルを開く
+        fileInput.onchange = function() {
+            if (fileInput.files.length && modal) {
+                modal.classList.remove('hidden');
+            }
+        };
+    } else if (modal) {
+        // すでにファイルが選ばれていればそのままモーダルを開く
+        modal.classList.remove('hidden');
+    }
 }
 
 function closeUploadModal() {
-    document.getElementById('uploadModal').classList.add('hidden');
-    document.getElementById('uploadForm').reset();
-    document.getElementById('uploadProgress').classList.add('hidden');
+    const modal = document.getElementById('uploadModal');
+    const form = document.getElementById('uploadForm');
+    const progress = document.getElementById('uploadProgress');
+    
+    if (modal) modal.classList.add('hidden');
+    if (form) form.reset();
+    if (progress) progress.classList.add('hidden');
 }
 
 function openOutfitModal() {
-    document.getElementById('outfitModal').classList.remove('hidden');
+    const modal = document.getElementById('outfitModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 }
 
 function closeOutfitModal() {
-    document.getElementById('outfitModal').classList.add('hidden');
-    document.getElementById('outfitForm').reset();
-    document.getElementById('outfitProgress').classList.add('hidden');
+    const modal = document.getElementById('outfitModal');
+    const form = document.getElementById('outfitForm');
+    const progress = document.getElementById('outfitProgress');
+    
+    if (modal) modal.classList.add('hidden');
+    if (form) form.reset();
+    if (progress) progress.classList.add('hidden');
 }
 
 function closeResultModal() {
-    document.getElementById('resultModal').classList.add('hidden');
+    const modal = document.getElementById('resultModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
 }
 
 // Upload clothing item
@@ -33,7 +61,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     const fileInput = document.getElementById('clothingFile');
     const progressDiv = document.getElementById('uploadProgress');
     
-    if (!fileInput.files[0]) {
+    if (!fileInput || !fileInput.files[0]) {
         alert('Please select a file');
         return;
     }
@@ -41,7 +69,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     formData.append('file', fileInput.files[0]);
     
     // Show progress
-    progressDiv.classList.remove('hidden');
+    if (progressDiv) progressDiv.classList.remove('hidden');
     
     try {
         const response = await fetch('/upload', {
@@ -62,7 +90,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     } catch (error) {
         alert('Upload failed: ' + error.message);
     } finally {
-        progressDiv.classList.add('hidden');
+        if (progressDiv) progressDiv.classList.add('hidden');
     }
 });
 
@@ -80,7 +108,7 @@ document.getElementById('outfitForm').addEventListener('submit', async function(
     }
     
     // Show progress
-    progressDiv.classList.remove('hidden');
+    if (progressDiv) progressDiv.classList.remove('hidden');
     
     try {
         const response = await fetch('/generate-outfit', {
@@ -108,7 +136,7 @@ document.getElementById('outfitForm').addEventListener('submit', async function(
     } catch (error) {
         alert('Generation failed: ' + error.message);
     } finally {
-        progressDiv.classList.add('hidden');
+        if (progressDiv) progressDiv.classList.add('hidden');
     }
 });
 
@@ -140,6 +168,7 @@ function updateClosetDisplay(items) {
         const itemElement = document.createElement('div');
         itemElement.className = 'closet-item bg-white rounded-lg p-4 shadow-sm';
         itemElement.innerHTML = `
+            ${item.image ? `<img src="${item.image}" alt="${item.file.replace('.txt', '')}" class="w-full h-32 object-contain mb-2" />` : ''}
             <h4 class="font-medium text-sm mb-2">${item.file.replace('.txt', '')}</h4>
             <p class="text-xs text-gray-600">${item.desc.substring(0, 100)}...</p>
         `;
@@ -185,6 +214,103 @@ document.addEventListener('DOMContentLoaded', function() {
         lucide.createIcons();
     }
     
+    // Upload clothing item
+    const uploadForm = document.getElementById('uploadForm');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('clothingFile');
+            const progressDiv = document.getElementById('uploadProgress');
+            
+            if (!fileInput || !fileInput.files[0]) {
+                alert('Please select a file');
+                return;
+            }
+            
+            formData.append('file', fileInput.files[0]);
+            
+            // Show progress
+            if (progressDiv) progressDiv.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Clothing item analyzed successfully!');
+                    closeUploadModal();
+                    // Optionally refresh the closet view
+                    loadCloset();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Upload failed: ' + error.message);
+            } finally {
+                if (progressDiv) progressDiv.classList.add('hidden');
+            }
+        });
+    }
+
+    // Generate outfit
+    const outfitForm = document.getElementById('outfitForm');
+    if (outfitForm) {
+        outfitForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const weatherSelect = document.getElementById('weather');
+            const occasionSelect = document.getElementById('occasion');
+            const progressDiv = document.getElementById('outfitProgress');
+            
+            if (!weatherSelect || !occasionSelect || !weatherSelect.value || !occasionSelect.value) {
+                alert('Please select both weather and occasion');
+                return;
+            }
+            
+            // Show progress
+            if (progressDiv) progressDiv.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('/generate-outfit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        weather: weatherSelect.value,
+                        occasion: occasionSelect.value
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show result modal
+                    const generatedImage = document.getElementById('generatedImage');
+                    const resultMessage = document.getElementById('resultMessage');
+                    const resultModal = document.getElementById('resultModal');
+                    
+                    if (generatedImage) generatedImage.src = result.image_url;
+                    if (resultMessage) resultMessage.textContent = result.message;
+                    if (resultModal) resultModal.classList.remove('hidden');
+                    closeOutfitModal();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Generation failed: ' + error.message);
+            } finally {
+                if (progressDiv) progressDiv.classList.add('hidden');
+            }
+        });
+    }
+    
     // Set default tab
     switchTab('home');
     
@@ -206,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Utility functions
+// Utility function for notifications
 function showNotification(message, type = 'info') {
     // Create notification element
     const notification = document.createElement('div');
@@ -217,10 +343,13 @@ function showNotification(message, type = 'info') {
     }`;
     notification.textContent = message;
     
+    // Add to page
     document.body.appendChild(notification);
     
     // Remove after 3 seconds
     setTimeout(() => {
-        notification.remove();
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
     }, 3000);
 } 

@@ -16,11 +16,11 @@
             <p class="text-xs text-[#9A9A9A] mb-4 text-center">Take a photo or upload from your gallery</p>
             <input type="file" id="photoInput" accept="image/*" style="display: none;">
             <div class="flex gap-2">
-                <button onclick="openCamera()"
+                <button id="takePhotoBtn"
                         class="bg-[#E8D0D0] hover:bg-[#E0C0C0] text-[#333333] rounded-full px-4 py-2">
                     Take Photo
                 </button>
-                <button onclick="openGallery()"
+                <button id="galleryBtn"
                         class="bg-[#F5F0E8] hover:bg-[#E8E0D5] text-[#333333] rounded-full px-4 py-2">
                     Choose from Gallery
                 </button>
@@ -31,7 +31,7 @@
 
     <!-- Conversation -->
     <div class="rounded-3xl border-0 shadow-sm p-4 mb-6">
-        <div class="space-y-4 max-h-[300px] overflow-y-auto mb-4">
+        <div id="chatMessages" class="space-y-4 max-h-[300px] overflow-y-auto mb-4">
             <div class="bg-[#F5F0E8] rounded-2xl p-3 max-w-[80%]">
                 <p class="text-sm">Hello! How can I help with your style today?</p>
                 <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • 10:30 AM</p>
@@ -50,26 +50,26 @@
             </div>
         </div>
 
-        <div class="flex gap-2">
+        <form id="chatForm" class="flex gap-2">
             <div class="relative flex-grow">
-                <input type="text" placeholder="Ask anything about fashion..."
+                <input type="text" id="chatInput" placeholder="Ask anything about fashion..."
                        class="w-full rounded-full border-[#E8E8E8] focus:ring-[#E8D0D0] focus:border-[#E8D0D0] px-4 py-2">
             </div>
-            <button class="rounded-full bg-[#E8D0D0] hover:bg-[#E0C0C0] text-[#333333] px-4 py-2">Send</button>
-        </div>
+            <button type="submit" id="sendButton" class="rounded-full bg-[#E8D0D0] hover:bg-[#E0C0C0] text-[#333333] px-4 py-2">Send</button>
+        </form>
     </div>
 
     <!-- Suggested Questions -->
     <div>
         <h3 class="text-sm font-medium mb-3">Suggested Questions</h3>
         <div class="flex flex-wrap gap-2">
-            <span class="bg-[#F5F0E8] text-[#333333] hover:bg-[#E8E0D5] rounded-full px-3 py-1 text-sm">
+            <span class="bg-[#F5F0E8] text-[#333333] hover:bg-[#E8E0D5] rounded-full px-3 py-1 text-sm cursor-pointer" onclick="sendSuggestedQuestion('What colors match with gray?')">
                 What colors match with gray?
             </span>
-            <span class="bg-[#F5F0E8] text-[#333333] hover:bg-[#E8E0D5] rounded-full px-3 py-1 text-sm">
+            <span class="bg-[#F5F0E8] text-[#333333] hover:bg-[#E8E0D5] rounded-full px-3 py-1 text-sm cursor-pointer" onclick="sendSuggestedQuestion('How to style a white blouse?')">
                 How to style a white blouse?
             </span>
-            <span class="bg-[#F5F0E8] text-[#333333] hover:bg-[#E8E0D5] rounded-full px-3 py-1 text-sm">
+            <span class="bg-[#F5F0E8] text-[#333333] hover:bg-[#E8E0D5] rounded-full px-3 py-1 text-sm cursor-pointer" onclick="sendSuggestedQuestion('Casual outfit ideas')">
                 Casual outfit ideas
             </span>
         </div>
@@ -77,15 +77,152 @@
 </div>
 
 <script>
-    function openCamera() {
-        // Trigger the takePhotoBtn click event from camera.js
-        $('#takePhotoBtn').trigger('click');
+    // Camera and gallery functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const takePhotoBtn = document.getElementById('takePhotoBtn');
+        const galleryBtn = document.getElementById('galleryBtn');
+        const photoInput = document.getElementById('photoInput');
+        const photoPreview = document.getElementById('photoPreview');
+
+        // Take photo button
+        if (takePhotoBtn) {
+            takePhotoBtn.addEventListener('click', function() {
+                // Check if device supports camera
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    // Use camera API
+                    navigator.mediaDevices.getUserMedia({ video: true })
+                        .then(function(stream) {
+                            // Create video element for camera preview
+                            const video = document.createElement('video');
+                            video.srcObject = stream;
+                            video.play();
+                            
+                            // Create canvas to capture photo
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            
+                            video.addEventListener('loadedmetadata', function() {
+                                canvas.width = video.videoWidth;
+                                canvas.height = video.videoHeight;
+                                context.drawImage(video, 0, 0);
+                                
+                                // Convert to blob and display
+                                canvas.toBlob(function(blob) {
+                                    const url = URL.createObjectURL(blob);
+                                    photoPreview.src = url;
+                                    photoPreview.style.display = 'block';
+                                    
+                                    // Stop camera stream
+                                    stream.getTracks().forEach(track => track.stop());
+                                    
+                                    // Add photo to chat
+                                    addPhotoToChat(url);
+                                }, 'image/jpeg');
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error('Camera access denied:', error);
+                            alert('Camera access denied. Please use gallery instead.');
+                        });
+                } else {
+                    // Fallback to file input
+                    photoInput.click();
+                }
+            });
+        }
+
+        // Gallery button
+        if (galleryBtn) {
+            galleryBtn.addEventListener('click', function() {
+                photoInput.click();
+            });
+        }
+
+        // File input change
+        if (photoInput) {
+            photoInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    photoPreview.src = url;
+                    photoPreview.style.display = 'block';
+                    
+                    // Add photo to chat
+                    addPhotoToChat(url);
+                }
+            });
+        }
+    });
+
+    function addPhotoToChat(imageUrl) {
+        const chatMessages = document.getElementById('chatMessages');
+        const photoMessage = document.createElement('div');
+        photoMessage.className = 'bg-[#E8E8E8] rounded-2xl p-3 max-w-[80%] ml-auto';
+        photoMessage.innerHTML = `
+            <img src="${imageUrl}" alt="Uploaded photo" class="w-full rounded-lg mb-2">
+            <p class="text-xs text-[#9A9A9A]">You • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+        `;
+        chatMessages.appendChild(photoMessage);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        // Simulate AI response about the photo
+        setTimeout(() => {
+            const aiResponse = document.createElement('div');
+            aiResponse.className = 'bg-[#F5F0E8] rounded-2xl p-3 max-w-[80%]';
+            aiResponse.innerHTML = `
+                <p class="text-sm">Great photo! I can see your outfit. Let me analyze it and provide some style suggestions...</p>
+                <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+            `;
+            chatMessages.appendChild(aiResponse);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }, 1000);
     }
 
-    function openGallery() {
-        // Trigger the galleryBtn click event from camera.js
-        $('#galleryBtn').trigger('click');
+    function sendSuggestedQuestion(question) {
+        document.getElementById('chatInput').value = question;
+        document.getElementById('sendButton').click();
     }
 
-    // The photo input change handler is now handled in camera.js
+    // Chat form submission
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatForm = document.getElementById('chatForm');
+        const chatInput = document.getElementById('chatInput');
+        const chatMessages = document.getElementById('chatMessages');
+
+        if (chatForm) {
+            chatForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const message = chatInput.value.trim();
+                if (!message) return;
+
+                // Add user message
+                const userMessage = document.createElement('div');
+                userMessage.className = 'bg-[#E8E8E8] rounded-2xl p-3 max-w-[80%] ml-auto';
+                userMessage.innerHTML = `
+                    <p class="text-sm">${message}</p>
+                    <p class="text-xs text-[#9A9A9A] mt-1">You • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                `;
+                chatMessages.appendChild(userMessage);
+
+                // Clear input
+                chatInput.value = '';
+
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                // Simulate AI response (replace with actual API call)
+                setTimeout(() => {
+                    const aiMessage = document.createElement('div');
+                    aiMessage.className = 'bg-[#F5F0E8] rounded-2xl p-3 max-w-[80%]';
+                    aiMessage.innerHTML = `
+                        <p class="text-sm">Thank you for your question! I'm here to help with your fashion needs. This is a demo response - in the full version, I would provide personalized advice based on your style preferences.</p>
+                        <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    `;
+                    chatMessages.appendChild(aiMessage);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 1000);
+            });
+        }
+    });
 </script>

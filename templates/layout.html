@@ -53,6 +53,120 @@
         {% block content %}{% endblock %}
     </div>
     
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium">Upload Clothing Item</h3>
+                    <button onclick="closeUploadModal()" class="text-gray-500 hover:text-gray-700">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Select Image</label>
+                        <input type="file" id="clothingFile" name="file" accept="image/*" class="w-full p-2 border border-gray-300 rounded-lg" required>
+                    </div>
+                    
+                    <div id="uploadProgress" class="hidden mb-4">
+                        <div class="bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Analyzing clothing item...</p>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeUploadModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Upload & Analyze
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Outfit Generation Modal -->
+    <div id="outfitModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium">Generate Outfit</h3>
+                    <button onclick="closeOutfitModal()" class="text-gray-500 hover:text-gray-700">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <form id="outfitForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Weather</label>
+                        <select id="weather" name="weather" class="w-full p-2 border border-gray-300 rounded-lg">
+                            <option value="">Select weather</option>
+                            <option value="warm">Warm/Summer</option>
+                            <option value="cold">Cold/Winter</option>
+                            <option value="rainy">Rainy</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Occasion</label>
+                        <select id="occasion" name="occasion" class="w-full p-2 border border-gray-300 rounded-lg">
+                            <option value="">Select occasion</option>
+                            <option value="casual">Casual</option>
+                            <option value="formal">Formal</option>
+                            <option value="work">Work</option>
+                        </select>
+                    </div>
+                    
+                    <div id="outfitProgress" class="hidden mb-4">
+                        <div class="bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-600 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Generating your outfit...</p>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeOutfitModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            Generate Outfit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="resultModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl p-6 w-full max-w-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium">Generated Outfit</h3>
+                    <button onclick="closeResultModal()" class="text-gray-500 hover:text-gray-700">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <div id="resultContent" class="text-center">
+                    <img id="generatedImage" class="w-full rounded-lg mb-4" alt="Generated outfit">
+                    <p id="resultMessage" class="text-gray-600"></p>
+                </div>
+                
+                <div class="flex justify-end mt-4">
+                    <button onclick="closeResultModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Main application JavaScript -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>

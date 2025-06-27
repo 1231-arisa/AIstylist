@@ -29,4 +29,37 @@
     .grid-cols-3 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    /* カルーセル画像やアバター画像のサイズ調整 */
+    .outfit-slide img,
+    .outfit-slide .w-64,
+    .outfit-slide .h-64 {
+        width: 8rem !important;
+        height: 8rem !important;
+        max-width: 100vw !important;
+        max-height: 40vh !important;
+    }
+    .outfit-carousel {
+        height: 220px !important;
+    }
+    /* ナビゲーションやモーダルの余白調整 */
+    .tab-content, .p-4, .p-6 {
+        padding: 1rem !important;
+    }
+    .fixed.bottom-0 {
+        padding: 0.5rem !important;
+    }
+    /* フォントサイズ微調整 */
+    .text-2xl, .text-lg {
+        font-size: 1.1rem !important;
+    }
+    /* ボタンのタップ領域拡大 */
+    button, .rounded-full {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    /* 入力欄の幅調整 */
+    input[type="text"], input[type="file"] {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+    }
 }

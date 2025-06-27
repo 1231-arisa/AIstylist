@@ -1,5 +1,9 @@
 <!-- Closet Section -->
 <div class="p-4 pt-12">
+    <!-- Add these hidden inputs at the top of the closet section -->
+    <input type="file" id="closetCameraInput" accept="image/*" capture="environment" style="display:none" />
+    <input type="file" id="closetGalleryInput" accept="image/*" style="display:none" />
+
     <!-- Header -->
     <div class="mb-6">
         <h1 class="text-2xl font-light tracking-wide">My Closet</h1>
@@ -16,29 +20,34 @@
     <!-- Categories -->
     <div class="mb-6 overflow-x-auto">
         <div class="flex gap-2 min-w-max">
-            {% for category in categories %}
-            <button data-category="{{ category }}"
-                    class="category-btn rounded-full px-4 py-1 h-auto text-sm border {% if category == 'All' %}bg-[#E8D0D0] text-[#333333] border-[#E8D0D0]{% else %}bg-transparent text-[#9A9A9A] border-[#E8E8E8]{% endif %}">
-                {{ category }}
+            <button data-category="All"
+                    class="category-btn rounded-full px-4 py-1 h-auto text-sm border bg-[#E8D0D0] text-[#333333] border-[#E8D0D0]">
+                All
             </button>
-            {% endfor %}
+            <button data-category="Tops"
+                    class="category-btn rounded-full px-4 py-1 h-auto text-sm border bg-transparent text-[#9A9A9A] border-[#E8E8E8]">
+                Tops
+            </button>
+            <button data-category="Bottoms"
+                    class="category-btn rounded-full px-4 py-1 h-auto text-sm border bg-transparent text-[#9A9A9A] border-[#E8E8E8]">
+                Bottoms
+            </button>
+            <button data-category="Dresses"
+                    class="category-btn rounded-full px-4 py-1 h-auto text-sm border bg-transparent text-[#9A9A9A] border-[#E8E8E8]">
+                Dresses
+            </button>
         </div>
-    </div>    <!-- Closet Grid -->
-    <div class="grid grid-cols-3 gap-4">
-        {% for item in closet_items %}
-        <div class="rounded-2xl border-0 shadow-sm overflow-hidden closet-item" data-category="{{ item.category }}">
-            <div class="{{ item.color }} h-32 flex items-center justify-center">
-                <i data-lucide="shopping-bag" class="w-8 h-8 text-[#9A9A9A]"></i>
-            </div>
-            <div class="p-2">
-                <p class="text-xs font-medium truncate">{{ item.name }}</p>
-                <p class="text-xs text-[#9A9A9A]">{{ item.category }}</p>
-            </div>
-        </div>
-        {% endfor %}
-    </div>    <!-- Add Item Floating Button -->
+    </div>
+
+    <!-- Closet Grid -->
+    <div class="closet-grid grid grid-cols-3 gap-4">
+        <!-- Items will be loaded dynamically -->
+    </div>
+
+    <!-- Add Item Floating Button -->
     <div class="add-item-button-container" style="position: relative; z-index: 9999;">
         <button 
+            id="addItemButton"
             class="fixed bottom-20 right-4 w-12 h-12 bg-[#E8D0D0] hover:bg-[#E0C0C0] text-[#333333] rounded-full flex items-center justify-center shadow-lg"
             title="Add New Item"
             aria-label="Add New Item"
@@ -63,3 +72,49 @@
         z-index: 9999 !important;
     }
 </style>
+
+<script>
+    // Category filtering
+    document.addEventListener('DOMContentLoaded', function() {
+        const categoryButtons = document.querySelectorAll('.category-btn');
+        
+        categoryButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                categoryButtons.forEach(btn => {
+                    btn.classList.remove('bg-[#E8D0D0]', 'text-[#333333]', 'border-[#E8D0D0]');
+                    btn.classList.add('bg-transparent', 'text-[#9A9A9A]', 'border-[#E8E8E8]');
+                });
+                
+                // Add active class to clicked button
+                this.classList.remove('bg-transparent', 'text-[#9A9A9A]', 'border-[#E8E8E8]');
+                this.classList.add('bg-[#E8D0D0]', 'text-[#333333]', 'border-[#E8D0D0]');
+                
+                // Filter items (this would be implemented based on your data structure)
+                const category = this.getAttribute('data-category');
+                console.log('Filtering by category:', category);
+            });
+        });
+
+        // Add item button event listener
+        const addItemButton = document.getElementById('addItemButton');
+        const galleryInput = document.getElementById('closetGalleryInput');
+        if (addItemButton && galleryInput) {
+            addItemButton.addEventListener('click', function() {
+                galleryInput.click();
+            });
+            galleryInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const modalInput = document.getElementById('clothingFile');
+                    if (modalInput) {
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        modalInput.files = dt.files;
+                    }
+                    openUploadModal();
+                }
+            });
+        }
+    });
+</script>

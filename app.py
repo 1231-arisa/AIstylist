@@ -1,6 +1,6 @@
 """
 AIstylist - Main Application
-統合されたフロントエンドとバックエンドのWebアプリケーション
+Integrated frontend and backend web application
 """
 
 import os
@@ -13,40 +13,121 @@ from werkzeug.utils import secure_filename
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# バックエンド機能のインポート
+# Import backend functionality
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 from generate_item import analyze_image
 from style_agent import select_outfit, load_closet_txts
 from generate_visualisation import generate_image, sanitize_prompt
 
-# 環境変数の読み込み
+# Load environment variables
 load_dotenv()
 
 def create_app():
     app = Flask(__name__)
     
-    # 設定
+    # Configuration
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
     app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'data', 'clothes', 'input')
     app.config['OUTPUT_FOLDER'] = os.path.join(os.path.dirname(__file__), 'output')
     
-    # ディレクトリの作成
+    # Create directories
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
     
-    # OpenAI APIキーの確認
+    # Check OpenAI API key
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         print("Warning: OPENAI_API_KEY not found in environment variables")
     
+    def generate_daily_outfits():
+        """Generate daily outfit recommendations"""
+        outfits = []
+        
+        # Weather and occasion combinations
+        weather_occasions = [
+            ('warm', 'casual'),
+            ('cold', 'formal'),
+            ('rainy', 'casual'),
+            ('warm', 'work')
+        ]
+        
+        for weather, occasion in weather_occasions:
+            try:
+                # Style selection
+                criteria = {'weather': weather, 'occasion': occasion}
+                selected_items = select_outfit(criteria, app.config['UPLOAD_FOLDER'])
+                
+                if selected_items:
+                    # Avatar file path
+                    avatar_path = os.path.join(os.path.dirname(__file__), 'data', 'avatar.txt')
+                    
+                    # Selected clothing paths
+                    clothing_paths = [os.path.join(app.config['UPLOAD_FOLDER'], item) for item in selected_items]
+                    
+                    # Image generation (only if API key is available)
+                    if api_key:
+                        try:
+                            # Read text file contents
+                            texts = []
+                            for path in [avatar_path] + clothing_paths:
+                                with open(path, 'r', encoding='utf-8') as f:
+                                    texts.append(f.read().strip())
+                            
+                            # Combine and sanitize prompt
+                            raw_prompt = "\n".join(texts)
+                            prompt = sanitize_prompt(raw_prompt)
+                            
+                            # Generate image
+                            image_bytes = generate_image(prompt, api_key)
+                            
+                            # Save image
+                            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                            output_filename = f"daily_outfit_{weather}_{occasion}_{timestamp}.png"
+                            output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+                            
+                            with open(output_path, "wb") as f:
+                                f.write(image_bytes)
+                            
+                            outfits.append({
+                                'name': f'{weather.title()} {occasion.title()} Look',
+                                'image': f'/output/{output_filename}',
+                                'weather': weather.title(),
+                                'occasion': occasion.title()
+                            })
+                            
+                        except Exception as e:
+                            print(f"Failed to generate image for {weather}/{occasion}: {e}")
+                            # Fallback: default avatar
+                            outfits.append({
+                                'name': f'{weather.title()} {occasion.title()} Look',
+                                'image': '/static/images/avatar-placeholder.svg',
+                                'weather': weather.title(),
+                                'occasion': occasion.title()
+                            })
+                    else:
+                        # Fallback when no API key
+                        outfits.append({
+                            'name': f'{weather.title()} {occasion.title()} Look',
+                            'image': '/static/images/avatar-placeholder.svg',
+                            'weather': weather.title(),
+                            'occasion': occasion.title()
+                        })
+                        
+            except Exception as e:
+                print(f"Failed to generate outfit for {weather}/{occasion}: {e}")
+        
+        return outfits
+    
     @app.route('/')
     def index():
-        """メインページ"""
-        return render_template('home.html')
+        """Main page"""
+        # 4つのおすすめコーデを生成
+        outfits = generate_daily_outfits()
+        return render_template('home.html', outfits=outfits)
     
     @app.route('/upload', methods=['POST'])
     def upload_clothing():
-        """服の画像をアップロードして分析"""
+        """Upload and analyze clothing image"""
         if 'file' not in request.files:
             return jsonify({'error': 'No file uploaded'}), 400
         
@@ -60,10 +141,10 @@ def create_app():
             file.save(filepath)
             
             try:
-                # 画像を分析
+                # Analyze image
                 description = analyze_image(filepath, api_key)
                 
-                # 説明をテキストファイルとして保存
+                # Save description as text file
                 txt_filename = os.path.splitext(filename)[0] + '.txt'
                 txt_filepath = os.path.join(app.config['UPLOAD_FOLDER'], txt_filename)
                 with open(txt_filepath, 'w', encoding='utf-8') as f:
@@ -81,41 +162,41 @@ def create_app():
     
     @app.route('/generate-outfit', methods=['POST'])
     def generate_outfit():
-        """天候とシーンに基づいてアウトフィットを生成"""
+        """Generate outfit based on weather and occasion"""
         data = request.get_json()
         weather = data.get('weather', '')
         occasion = data.get('occasion', '')
         
         try:
-            # スタイル選択
+            # Style selection
             criteria = {'weather': weather, 'occasion': occasion}
             selected_items = select_outfit(criteria, app.config['UPLOAD_FOLDER'])
             
             if not selected_items:
                 return jsonify({'error': 'No suitable outfit found'}), 404
             
-            # アバターファイルのパス
+            # Avatar file path
             avatar_path = os.path.join(os.path.dirname(__file__), 'data', 'avatar.txt')
             
-            # 選択された服のパス
+            # Selected clothing paths
             clothing_paths = [os.path.join(app.config['UPLOAD_FOLDER'], item) for item in selected_items]
             
-            # 画像生成
+            # Image generation
             try:
-                # テキストファイルの内容を読み込み
+                # Read text file contents
                 texts = []
                 for path in [avatar_path] + clothing_paths:
                     with open(path, 'r', encoding='utf-8') as f:
                         texts.append(f.read().strip())
                 
-                # プロンプトを組み合わせてサニタイズ
+                # Combine and sanitize prompt
                 raw_prompt = "\n".join(texts)
                 prompt = sanitize_prompt(raw_prompt)
                 
-                # 画像生成
+                # Generate image
                 image_bytes = generate_image(prompt, api_key)
                 
-                # 画像を保存
+                # Save image
                 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 output_filename = f"styled_avatar_{timestamp}.png"
                 output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
@@ -138,7 +219,7 @@ def create_app():
     
     @app.route('/closet')
     def get_closet():
-        """クローゼットの内容を取得"""
+        """Get closet contents"""
         try:
             items = load_closet_txts(app.config['UPLOAD_FOLDER'])
             return jsonify({
@@ -150,13 +231,35 @@ def create_app():
     
     @app.route('/output/<filename>')
     def serve_output(filename):
-        """生成された画像を提供"""
+        """Serve generated images"""
         return send_from_directory(app.config['OUTPUT_FOLDER'], filename)
     
     @app.route('/static/<path:filename>')
     def serve_static(filename):
-        """静的ファイルを提供"""
+        """Serve static files"""
         return send_from_directory('static', filename)
+    
+    @app.route('/avatar')
+    def get_avatar():
+        """Get avatar information"""
+        try:
+            avatar_path = os.path.join(os.path.dirname(__file__), 'data', 'avatar.txt')
+            if os.path.exists(avatar_path):
+                with open(avatar_path, 'r', encoding='utf-8') as f:
+                    avatar_description = f.read().strip()
+                return jsonify({
+                    'success': True,
+                    'description': avatar_description
+                })
+            else:
+                return jsonify({'error': 'Avatar file not found'}), 404
+        except Exception as e:
+            return jsonify({'error': f'Failed to load avatar: {str(e)}'}), 500
+    
+    @app.route('/data/clothes/input/<filename>')
+    def serve_closet_image(filename):
+        folder = os.path.join(os.path.dirname(__file__), 'data', 'clothes', 'input')
+        return send_from_directory(folder, filename)
     
     return app
 

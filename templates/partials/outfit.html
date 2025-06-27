@@ -13,34 +13,123 @@
 
             <!-- Outfit Image -->
             <div class="bg-[#F5F0E8] h-[450px] flex items-center justify-center">
-                {% for outfit in outfits %}
-                <div class="outfit-slide {% if loop.index0 == 0 %}active{% endif %}" data-index="{{ loop.index0 }}">
-                    <img src="{{ outfit.image }}" alt="{{ outfit.name }}" class="h-[400px] w-auto object-contain">
-                </div>
-                {% endfor %}
+                {% if outfits %}
+                    {% for outfit in outfits %}
+                    <div class="outfit-slide {% if loop.index0 == 0 %}active{% endif %}" data-index="{{ loop.index0 }}">
+                        <img src="{{ outfit.image }}" alt="{{ outfit.name }}" class="h-[400px] w-auto object-contain">
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Default Avatar Display -->
+                    <div class="outfit-slide active" data-index="0">
+                        <div class="text-center">
+                            <div class="w-64 h-64 mx-auto bg-white rounded-full flex items-center justify-center mb-4 shadow-lg">
+                                <i data-lucide="user" class="w-32 h-32 text-[#9A9A9A]"></i>
+                            </div>
+                            <h3 class="text-lg font-medium text-[#333333]">Your AI Avatar</h3>
+                            <p class="text-sm text-[#9A9A9A] mt-2">Upload clothing items to see outfit recommendations</p>
+                        </div>
+                    </div>
+                {% endif %}
             </div>
 
             <!-- Outfit Info -->
             <div class="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-4">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h3 class="font-medium outfit-name"></h3>
+                        <h3 class="font-medium outfit-name">
+                            {% if outfits %}
+                                {{ outfits[0].name }}
+                            {% else %}
+                                AI Avatar
+                            {% endif %}
+                        </h3>
                         <div class="flex items-center gap-2 mt-1">
                             <div class="flex items-center gap-1">
                                 <i data-lucide="sun" class="w-3 h-3 text-[#9A9A9A]"></i>
-                                <span class="text-xs text-[#9A9A9A] outfit-weather"></span>
+                                <span class="text-xs text-[#9A9A9A] outfit-weather">
+                                    {% if outfits %}
+                                        {{ outfits[0].weather }}
+                                    {% else %}
+                                        Any weather
+                                    {% endif %}
+                                </span>
                             </div>
                             <span class="text-xs text-[#9A9A9A]">•</span>
-                            <span class="text-xs text-[#9A9A9A] outfit-occasion"></span>
+                            <span class="text-xs text-[#9A9A9A] outfit-occasion">
+                                {% if outfits %}
+                                    {{ outfits[0].occasion }}
+                                {% else %}
+                                    Any occasion
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
                     <div class="flex gap-1 outfit-dots">
-                        {% for outfit in outfits %}
-                        <div class="w-1.5 h-1.5 rounded-full {% if loop.index0 == 0 %}bg-[#E8D0D0]{% else %}bg-[#E8E8E8]{% endif %}"></div>
-                        {% endfor %}
+                        {% if outfits %}
+                            {% for outfit in outfits %}
+                            <div class="w-1.5 h-1.5 rounded-full {% if loop.index0 == 0 %}bg-[#E8D0D0]{% else %}bg-[#E8E8E8]{% endif %}"></div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="w-1.5 h-1.5 rounded-full bg-[#E8D0D0]"></div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    let currentOutfitIndex = 0;
+    const outfitSlides = document.querySelectorAll('.outfit-slide');
+    const outfitNames = document.querySelectorAll('.outfit-name');
+    const outfitWeathers = document.querySelectorAll('.outfit-weather');
+    const outfitOccasions = document.querySelectorAll('.outfit-occasion');
+    const outfitDots = document.querySelectorAll('.outfit-dots .w-1\\.5');
+
+    function showOutfit(index) {
+        // Hide all slides
+        outfitSlides.forEach(slide => {
+            slide.classList.remove('active');
+        });
+
+        // Show current slide
+        if (outfitSlides[index]) {
+            outfitSlides[index].classList.add('active');
+        }
+
+        // Update info
+        if (outfitNames[0]) {
+            outfitNames[0].textContent = outfitSlides[index]?.querySelector('img')?.alt || 'AI Avatar';
+        }
+
+        // Update dots
+        outfitDots.forEach((dot, i) => {
+            if (i === index) {
+                dot.classList.remove('bg-[#E8E8E8]');
+                dot.classList.add('bg-[#E8D0D0]');
+            } else {
+                dot.classList.remove('bg-[#E8D0D0]');
+                dot.classList.add('bg-[#E8E8E8]');
+            }
+        });
+
+        currentOutfitIndex = index;
+    }
+
+    function prevOutfit() {
+        const newIndex = currentOutfitIndex > 0 ? currentOutfitIndex - 1 : outfitSlides.length - 1;
+        showOutfit(newIndex);
+    }
+
+    function nextOutfit() {
+        const newIndex = currentOutfitIndex < outfitSlides.length - 1 ? currentOutfitIndex + 1 : 0;
+        showOutfit(newIndex);
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        showOutfit(0);
+    });
+</script>
