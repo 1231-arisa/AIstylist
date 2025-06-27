@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # Import backend functionality
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 from generate_item import analyze_image
-from style_agent import select_outfit, load_closet_txts
+from style_agent import select_outfit, load_closet_txts, select_multiple_outfits
 from generate_visualisation import generate_image, sanitize_prompt
 
 # Load environment variables
@@ -39,89 +39,74 @@ def create_app():
     if not api_key:
         print("Warning: OPENAI_API_KEY not found in environment variables")
     
-    def generate_daily_outfits():
-        """Generate daily outfit recommendations"""
+    def generate_daily_outfits(weather=None):
+        """
+        Generate up to 4 unique daily outfit recommendations only once per day.
+        If today's outfits exist in output/, reuse them. Otherwise, generate and save.
+        """
         outfits = []
-        
-        # Weather and occasion combinations
-        weather_occasions = [
-            ('warm', 'casual'),
-            ('cold', 'formal'),
-            ('rainy', 'casual'),
-            ('warm', 'work')
-        ]
-        
-        for weather, occasion in weather_occasions:
+        closet_dir = app.config['UPLOAD_FOLDER']
+        avatar_path = os.path.join(os.path.dirname(__file__), 'data', 'avatar.txt')
+        today_str = datetime.datetime.now().strftime("%Y%m%d")
+        output_dir = app.config['OUTPUT_FOLDER']
+
+        # Find today's outfit images
+        today_files = sorted([
+            f for f in os.listdir(output_dir)
+            if f.startswith(f"daily_outfit_{today_str}_") and f.endswith(".png")
+        ])
+
+        if today_files:
+            # Reuse today's saved outfits
+            for idx, filename in enumerate(today_files):
+                outfits.append({
+                    'name': f'Outfit {idx+1}',
+                    'image': f'/output/{filename}',
+                    'weather': weather.title() if weather else 'Any',
+                    'occasion': 'Any',
+                    'files': []
+                })
+            return outfits
+
+        # If not found, generate new outfits and save with today's date
+        criteria = {'weather': weather} if weather else None
+        outfit_files_list = select_multiple_outfits(num=4, closet_dir=closet_dir, criteria=criteria)
+        for idx, files in enumerate(outfit_files_list):
             try:
-                # Style selection
-                criteria = {'weather': weather, 'occasion': occasion}
-                selected_items = select_outfit(criteria, app.config['UPLOAD_FOLDER'])
-                
-                if selected_items:
-                    # Avatar file path
-                    avatar_path = os.path.join(os.path.dirname(__file__), 'data', 'avatar.txt')
-                    
-                    # Selected clothing paths
-                    clothing_paths = [os.path.join(app.config['UPLOAD_FOLDER'], item) for item in selected_items]
-                    
-                    # Image generation (only if API key is available)
-                    if api_key:
-                        try:
-                            # Read text file contents
-                            texts = []
-                            for path in [avatar_path] + clothing_paths:
-                                with open(path, 'r', encoding='utf-8') as f:
-                                    texts.append(f.read().strip())
-                            
-                            # Combine and sanitize prompt
-                            raw_prompt = "\n".join(texts)
-                            prompt = sanitize_prompt(raw_prompt)
-                            
-                            # Generate image
-                            image_bytes = generate_image(prompt, api_key)
-                            
-                            # Save image
-                            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                            output_filename = f"daily_outfit_{weather}_{occasion}_{timestamp}.png"
-                            output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
-                            
-                            with open(output_path, "wb") as f:
-                                f.write(image_bytes)
-                            
-                            outfits.append({
-                                'name': f'{weather.title()} {occasion.title()} Look',
-                                'image': f'/output/{output_filename}',
-                                'weather': weather.title(),
-                                'occasion': occasion.title()
-                            })
-                            
-                        except Exception as e:
-                            print(f"Failed to generate image for {weather}/{occasion}: {e}")
-                            # Fallback: default avatar
-                            outfits.append({
-                                'name': f'{weather.title()} {occasion.title()} Look',
-                                'image': '/static/images/avatar-placeholder.svg',
-                                'weather': weather.title(),
-                                'occasion': occasion.title()
-                            })
-                    else:
-                        # Fallback when no API key
-                        outfits.append({
-                            'name': f'{weather.title()} {occasion.title()} Look',
-                            'image': '/static/images/avatar-placeholder.svg',
-                            'weather': weather.title(),
-                            'occasion': occasion.title()
-                        })
-                        
+                clothing_paths = [os.path.join(closet_dir, f) for f in files]
+                texts = []
+                for path in [avatar_path] + clothing_paths:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        texts.append(f.read().strip())
+                raw_prompt = "\n".join(texts)
+                prompt = sanitize_prompt(raw_prompt)
+                image_bytes = generate_image(prompt, api_key)
+                output_filename = f"daily_outfit_{today_str}_{idx+1}.png"
+                output_path = os.path.join(output_dir, output_filename)
+                with open(output_path, "wb") as f:
+                    f.write(image_bytes)
+                outfits.append({
+                    'name': f'Outfit {idx+1}',
+                    'image': f'/output/{output_filename}',
+                    'weather': weather.title() if weather else 'Any',
+                    'occasion': 'Any',
+                    'files': files
+                })
             except Exception as e:
-                print(f"Failed to generate outfit for {weather}/{occasion}: {e}")
-        
+                print(f"Failed to generate image for outfit {idx+1}: {e}")
+                outfits.append({
+                    'name': f'Outfit {idx+1}',
+                    'image': '/static/images/avatar-placeholder.svg',
+                    'weather': weather.title() if weather else 'Any',
+                    'occasion': 'Any',
+                    'files': files
+                })
         return outfits
     
     @app.route('/')
     def index():
         """Main page"""
-        # 4つのおすすめコーデを生成
+        # Generate up to 4 unique daily outfits (no weather filter by default)
         outfits = generate_daily_outfits()
         return render_template('home.html', outfits=outfits)
     

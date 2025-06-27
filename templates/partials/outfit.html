@@ -12,6 +12,10 @@
             </button>
 
             <!-- Outfit Image -->
+            <style>
+                .outfit-slide { display: none; }
+                .outfit-slide.active { display: flex; justify-content: center; }
+            </style>
             <div class="bg-[#F5F0E8] h-[450px] flex items-center justify-center">
                 {% if outfits %}
                     {% for outfit in outfits %}
@@ -81,55 +85,36 @@
 </div>
 
 <script>
-    let currentOutfitIndex = 0;
-    const outfitSlides = document.querySelectorAll('.outfit-slide');
-    const outfitNames = document.querySelectorAll('.outfit-name');
-    const outfitWeathers = document.querySelectorAll('.outfit-weather');
-    const outfitOccasions = document.querySelectorAll('.outfit-occasion');
-    const outfitDots = document.querySelectorAll('.outfit-dots .w-1\\.5');
+// Only one outfit is shown at a time. Use left/right arrows to switch.
+let currentOutfitIndex = 0;
+let outfitSlides, outfitDots;
 
-    function showOutfit(index) {
-        // Hide all slides
-        outfitSlides.forEach(slide => {
-            slide.classList.remove('active');
-        });
-
-        // Show current slide
-        if (outfitSlides[index]) {
-            outfitSlides[index].classList.add('active');
-        }
-
-        // Update info
-        if (outfitNames[0]) {
-            outfitNames[0].textContent = outfitSlides[index]?.querySelector('img')?.alt || 'AI Avatar';
-        }
-
-        // Update dots
-        outfitDots.forEach((dot, i) => {
-            if (i === index) {
-                dot.classList.remove('bg-[#E8E8E8]');
-                dot.classList.add('bg-[#E8D0D0]');
-            } else {
-                dot.classList.remove('bg-[#E8D0D0]');
-                dot.classList.add('bg-[#E8E8E8]');
-            }
-        });
-
-        currentOutfitIndex = index;
-    }
-
-    function prevOutfit() {
-        const newIndex = currentOutfitIndex > 0 ? currentOutfitIndex - 1 : outfitSlides.length - 1;
-        showOutfit(newIndex);
-    }
-
-    function nextOutfit() {
-        const newIndex = currentOutfitIndex < outfitSlides.length - 1 ? currentOutfitIndex + 1 : 0;
-        showOutfit(newIndex);
-    }
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', function() {
-        showOutfit(0);
+function showOutfit(index) {
+    outfitSlides = document.querySelectorAll('.outfit-slide');
+    outfitDots = document.querySelectorAll('.outfit-dots .w-1\\.5');
+    outfitSlides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === index);
     });
+    outfitDots.forEach((dot, i) => {
+        dot.classList.toggle('bg-[#E8D0D0]', i === index);
+        dot.classList.toggle('bg-[#E8E8E8]', i !== index);
+    });
+    currentOutfitIndex = index;
+}
+
+function prevOutfit() {
+    outfitSlides = document.querySelectorAll('.outfit-slide');
+    const newIndex = currentOutfitIndex > 0 ? currentOutfitIndex - 1 : outfitSlides.length - 1;
+    showOutfit(newIndex);
+}
+
+function nextOutfit() {
+    outfitSlides = document.querySelectorAll('.outfit-slide');
+    const newIndex = currentOutfitIndex < outfitSlides.length - 1 ? currentOutfitIndex + 1 : 0;
+    showOutfit(newIndex);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    showOutfit(0);
+});
 </script>
