@@ -16,84 +16,29 @@
         </div>
     </div>
     
-    <div class="outfit-carousel rounded-3xl border-0 shadow-sm overflow-hidden">
-        <div class="relative">
-            <!-- Outfit Navigation -->
-            <button onclick="prevOutfit()" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center z-10">
-                <i data-lucide="chevron-left" class="w-4 h-4 text-[#9A9A9A]"></i>
-            </button>
-            <button onclick="nextOutfit()" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center z-10">
-                <i data-lucide="chevron-right" class="w-4 h-4 text-[#9A9A9A]"></i>
-            </button>
-
-            <!-- Outfit Image -->
-            <div class="bg-[#F5F0E8] h-[450px] flex items-center justify-center">
-                {% if outfits %}
-                    {% for outfit in outfits %}
-                    <div class="outfit-slide {% if loop.index0 == 0 %}active{% endif %}" data-index="{{ loop.index0 }}" style="display: {% if loop.index0 == 0 %}flex{% else %}none{% endif %}; justify-content: center;">
-                        <div class="relative inline-block" style="height:400px">
-                            <img src="{{ outfit.image }}" alt="{{ outfit.name }}" class="h-[400px] w-auto object-contain">
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <!-- Default Avatar Display -->
-                    <div class="outfit-slide active" data-index="0">
-                        <div class="text-center">
-                            <div class="w-64 h-64 mx-auto bg-white rounded-full flex items-center justify-center mb-4 shadow-lg">
-                                <i data-lucide="user" class="w-32 h-32 text-[#9A9A9A]"></i>
-                            </div>
-                            <h3 class="text-lg font-medium text-[#333333]">Your AI Avatar</h3>
-                            <p class="text-sm text-[#9A9A9A] mt-2">Upload clothing items to see outfit recommendations</p>
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
-
-            <!-- Outfit Info -->
-            <div class="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-4">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h3 class="font-medium outfit-name">
-                            {% if outfits %}
-                                {{ outfits[0].name }}
-                            {% else %}
-                                AI Avatar
-                            {% endif %}
-                        </h3>
-                        <div class="flex items-center gap-2 mt-1">
-                            <div class="flex items-center gap-1">
-                                <i data-lucide="sun" class="w-3 h-3 text-[#9A9A9A]"></i>
-                                <span class="text-xs text-[#9A9A9A] outfit-weather">
-                                    {% if outfits %}
-                                        {{ outfits[0].weather }}
-                                    {% else %}
-                                        Any weather
-                                    {% endif %}
-                                </span>
-                            </div>
-                            <span class="text-xs text-[#9A9A9A]">•</span>
-                            <span class="text-xs text-[#9A9A9A] outfit-occasion">
-                                {% if outfits %}
-                                    {{ outfits[0].occasion }}
-                                {% else %}
-                                    Any occasion
-                                {% endif %}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="flex gap-1 outfit-dots">
-                        {% if outfits %}
-                            {% for outfit in outfits %}
-                            <div class="w-1.5 h-1.5 rounded-full {% if loop.index0 == 0 %}bg-[#E8D0D0]{% else %}bg-[#E8E8E8]{% endif %}"></div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="w-1.5 h-1.5 rounded-full bg-[#E8D0D0]"></div>
-                        {% endif %}
-                    </div>
+    <div id="outfit-carousel" class="relative w-full max-w-xs mx-auto">
+        {% for outfit in outfits %}
+            <div class="outfit-slide" style="{% if not loop.first %}display:none;{% endif %}">
+                <div class="flex justify-center">
+                    <img src="{{ outfit.image }}" alt="{{ outfit.name }}" class="w-48 h-48 object-contain rounded-lg shadow">
                 </div>
+                <div class="mt-2 text-center font-bold outfit-name">{{ outfit.name }}</div>
+                <div class="flex items-center justify-center gap-2 text-center text-sm outfit-weather">
+                    {% if weather_info and weather_info.icon_url %}
+                        <img src="{{ weather_info.icon_url }}" alt="weather icon" class="inline w-6 h-6 align-middle">
+                    {% endif %}
+                    <span>{{ weather_info.text if weather_info else '' }}</span>
+                    <span>
+                        {% if weather_info %}
+                            ({{ weather_info.temp_c }}°C / {{ weather_info.temp_f }}°F)
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="text-center text-xs outfit-occasion">{{ outfit.occasion }}</div>
             </div>
-        </div>
+        {% endfor %}
+        <button onclick="prevOutfit()" class="absolute left-0 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 rounded-full px-2 py-1">◀</button>
+        <button onclick="nextOutfit()" class="absolute right-0 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 rounded-full px-2 py-1">▶</button>
     </div>
 </div>
 
@@ -258,4 +203,6 @@ document.addEventListener('DOMContentLoaded', function() {
     showOutfit(0);
     loadDailyStatus();
 });
+
+window.outfits = {{ outfits|tojson }};
 </script>

@@ -38,49 +38,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Outfit carousel
-    const outfits = [
-        {
-            name: "Casual Chic",
-            weather: "Sunny, 72°F",
-            occasion: "Casual Day Out"
-        },
-        {
-            name: "Office Ready",
-            weather: "Sunny, 72°F",
-            occasion: "Work Day"
-        },
-        {
-            name: "Evening Casual",
-            weather: "Clear, 68°F",
-            occasion: "Dinner with Friends"
-        },
-        {
-            name: "Weekend Comfort",
-            weather: "Partly Cloudy, 70°F",
-            occasion: "Weekend Errands"
-        }
-    ];
-    
+    const outfits = window.outfits || [];
     let activeOutfit = 0;
-    const outfitSlides = document.querySelectorAll('.outfit-slide');
-    const outfitDots = document.querySelectorAll('.outfit-dots div');
-    const nameEl = document.querySelector('.outfit-name');
-    const weatherEl = document.querySelector('.outfit-weather');
-    const occasionEl = document.querySelector('.outfit-occasion');
+    const slides = document.querySelectorAll('.outfit-slide');
     
     function updateOutfit() {
-        outfitSlides.forEach((slide, index) => {
-            slide.classList.toggle('active', index === activeOutfit);
+        slides.forEach((slide, idx) => {
+            slide.style.display = (idx === activeOutfit) ? '' : 'none';
         });
-        
-        outfitDots.forEach((dot, index) => {
-            dot.classList.toggle('bg-[#E8D0D0]', index === activeOutfit);
-            dot.classList.toggle('bg-[#E8E8E8]', index !== activeOutfit);
-        });
-        
-        nameEl.textContent = outfits[activeOutfit].name;
-        weatherEl.textContent = outfits[activeOutfit].weather;
-        occasionEl.textContent = outfits[activeOutfit].occasion;
     }
     
     window.nextOutfit = function() {
@@ -93,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateOutfit();
     };
     
-    // Initialize outfit
     updateOutfit();
     
     // Closet filtering
