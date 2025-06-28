@@ -155,19 +155,26 @@ def create_app():
     def generate_daily_outfits(weather=None, force_generate=False):
         """
         List up to 4 daily outfit images generated at 5am (Vancouver time) from output/.
+        If no images exist for today, display up to 4 most recent .png images from output/.
         Never call the image generation API here. Only use existing images.
-        If no images exist for today, return a dummy image.
+        If no images exist at all, return a dummy image.
         """
         vancouver_time = get_vancouver_time()
         today_str = vancouver_time.strftime("%Y%m%d")
         output_dir = app.config['OUTPUT_FOLDER']
-        
-        # List today's daily outfit images
+
+        # 1. Get today's daily outfit images
         today_files = sorted([
             f for f in os.listdir(output_dir)
-            if f.startswith(f"daily_outfit_{today_str}_") and f.endswith(".png")
+            if "daily_outfit" in f and today_str in f and f.endswith(".png")
         ])
-        
+
+        # 2. If none, get up to 4 most recent .png images from output/
+        if not today_files:
+            all_pngs = [f for f in os.listdir(output_dir) if f.endswith(".png")]
+            all_pngs = sorted(all_pngs, key=lambda x: os.path.getmtime(os.path.join(output_dir, x)), reverse=True)
+            today_files = all_pngs[:4]
+
         outfits = []
         if today_files:
             for idx, filename in enumerate(today_files[:4]):
@@ -179,7 +186,6 @@ def create_app():
                     'files': []
                 })
         else:
-            # No images for today, show a dummy image
             outfits.append({
                 'name': 'No Outfit',
                 'image': '/static/images/avatar-placeholder.svg',

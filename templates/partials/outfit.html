@@ -20,7 +20,7 @@
         {% for outfit in outfits %}
             <div class="outfit-slide" style="{% if not loop.first %}display:none;{% endif %}">
                 <div class="flex justify-center">
-                    <img src="{{ outfit.image }}" alt="{{ outfit.name }}" class="w-48 h-48 object-contain rounded-lg shadow">
+                    <img src="{{ outfit.image }}" alt="{{ outfit.name }}" class="w-33 h-33 object-contain rounded-lg shadow">
                 </div>
                 <div class="mt-2 text-center font-bold outfit-name">{{ outfit.name }}</div>
                 <div class="flex items-center justify-center gap-2 text-center text-sm outfit-weather">
