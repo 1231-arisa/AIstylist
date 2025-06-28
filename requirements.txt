@@ -9,4 +9,10 @@ python-dotenv==1.1.1
 
 # Image processing dependencies (minimal set)
 Pillow==11.2.1
-numpy==1.26.4 
+numpy==1.26.4
+
+# Timezone handling
+pytz==2024.1
+
+# OAuth for Google login
+Flask-Dance==7.0.0 

@@ -18,8 +18,8 @@ def analyze_image(image_path, api_key=None):
     base64_image = encode_image(image_path)
     client = OpenAI(api_key=api_key)
     prompt = (
-        "Describe the clothing item in detail, including color, style, texture, fabric, and fit. "
-        "Focus only on the clothing, not the background or model."
+        "Describe the clothing item in detail, including its type (e.g., dress, shirt, pants, bag, shoes, etc.), color, style, texture, fabric, and fit. "
+        "Start the description with: 'This item is a ...'. Focus only on the clothing, not the background or model."
     )
     response = client.chat.completions.create(
         model="gpt-4o",

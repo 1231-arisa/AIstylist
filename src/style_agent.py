@@ -8,19 +8,35 @@ import random
 
 def load_closet_txts(closet_dir):
     items = []
-    for fname in os.listdir(closet_dir):
-        if fname.endswith('.txt'):
-            base = fname[:-4]
-            img_path = None
-            for ext in ['.jpg', '.jpeg', '.png']:
-                candidate = os.path.join(closet_dir, base + ext)
-                if os.path.exists(candidate):
-                    # Flaskのstatic配下でなければ、/data/clothes/input/からの相対パスで返す
-                    img_path = '/data/clothes/input/' + base + ext
-                    break
-            with open(os.path.join(closet_dir, fname), encoding='utf-8') as f:
+    # Get all image files
+    image_files = [f for f in os.listdir(closet_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    txt_files = set(f for f in os.listdir(closet_dir) if f.endswith('.txt'))
+    for img in image_files:
+        base = os.path.splitext(img)[0]
+        txt_name = base + '.txt'
+        img_path = '/data/clothes/input/' + img
+        if txt_name in txt_files:
+            with open(os.path.join(closet_dir, txt_name), encoding='utf-8') as f:
                 desc = f.read()
-            items.append({'file': fname, 'desc': desc, 'image': img_path})
+            desc_lower = desc.lower()
+            if any(word in desc_lower for word in ['dress']):
+                category = 'Dresses'
+            elif any(word in desc_lower for word in ['blouse', 'top', 'shirt', 't-shirt', 'sweater', 'hoodie']):
+                category = 'Tops'
+            elif any(word in desc_lower for word in ['pants', 'skirt', 'jeans', 'shorts', 'trousers']):
+                category = 'Bottoms'
+            elif any(word in desc_lower for word in ['shoes', 'sneaker', 'boot', 'sandals', 'loafer', 'heel']):
+                category = 'Shoes'
+            elif any(word in desc_lower for word in ['bag', 'handbag', 'backpack', 'purse', 'tote']):
+                category = 'Bags'
+            elif any(word in desc_lower for word in ['hat', 'cap', 'scarf', 'belt', 'glove', 'accessory']):
+                category = 'Accessories'
+            else:
+                category = 'Other'
+        else:
+            desc = "Description not available yet."
+            category = "Pending"
+        items.append({'file': txt_name, 'desc': desc, 'image': img_path, 'category': category})
     return items
 
 def filter_by_weather(items, weather):

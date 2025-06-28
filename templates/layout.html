@@ -43,12 +43,78 @@
         .tab-content[data-tab="closet"]:not(.hidden) .add-item-button-container {
             display: block !important;
         }
+        
+        .user-menu-fixed {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+        }
+        @media (max-width: 640px) {
+            .user-menu-fixed {
+                top: 0.5rem;
+                right: 0.5rem;
+                width: 44px;
+                height: 44px;
+            }
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script defer src="/static/js/theme.js"></script>
 </head>
-<body class="font-inter">
+<body class="font-inter bg-[#FAF7F2] min-h-screen">
+    <!-- User Account Menu (top right, always fixed, mobile-friendly) -->
+    <div class="user-menu-fixed">
+        <div class="relative">
+            <button id="userMenuBtn" class="rounded-full w-10 h-10 bg-[#F5F0E8] flex items-center justify-center text-lg font-bold shadow">
+                {% if session.user %}
+                    {% if session.user.picture %}
+                        <img src="{{ session.user.picture }}" class="rounded-full w-10 h-10" alt="User">
+                    {% else %}
+                        {{ session.user.initial }}
+                    {% endif %}
+                {% else %}
+                    ?
+                {% endif %}
+            </button>
+            <div id="userMenu" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg p-4 z-50">
+                {% if session.user %}
+                    <div class="mb-2">
+                        <div class="font-medium">{{ session.user.name }}</div>
+                        <div class="text-xs text-gray-500">{{ session.user.email }}</div>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="block text-red-500 mt-2">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="block text-blue-500 mt-2">Sign in with Google</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <script>
+        // User menu dropdown logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('userMenuBtn');
+            const menu = document.getElementById('userMenu');
+            // Set a JS variable for login state (as string, then convert to boolean)
+            var isLoggedIn = ("{{ 'true' if session.user else 'false' }}" === 'true');
+            if (btn && menu) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (!isLoggedIn) {
+                        window.location.href = "{{ url_for('login') }}";
+                        return;
+                    }
+                    menu.classList.toggle('hidden');
+                });
+                document.addEventListener('click', function(e) {
+                    if (!btn.contains(e.target) && !menu.contains(e.target)) {
+                        menu.classList.add('hidden');
+                    }
+                });
+            }
+        });
+    </script>
     <div class="theme-provider" data-theme="light">
         {% block content %}{% endblock %}
     </div>

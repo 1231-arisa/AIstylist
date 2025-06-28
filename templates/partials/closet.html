@@ -90,9 +90,9 @@
                 this.classList.remove('bg-transparent', 'text-[#9A9A9A]', 'border-[#E8E8E8]');
                 this.classList.add('bg-[#E8D0D0]', 'text-[#333333]', 'border-[#E8D0D0]');
                 
-                // Filter items (this would be implemented based on your data structure)
+                // Filter items by category
                 const category = this.getAttribute('data-category');
-                console.log('Filtering by category:', category);
+                filterAndDisplayCloset(category);
             });
         });
 

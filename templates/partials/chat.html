@@ -211,17 +211,39 @@
                 // Scroll to bottom
                 chatMessages.scrollTop = chatMessages.scrollHeight;
 
-                // Simulate AI response (replace with actual API call)
-                setTimeout(() => {
-                    const aiMessage = document.createElement('div');
-                    aiMessage.className = 'bg-[#F5F0E8] rounded-2xl p-3 max-w-[80%]';
+                // Show loading AI message
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'bg-[#F5F0E8] rounded-2xl p-3 max-w-[80%]';
+                aiMessage.innerHTML = `
+                    <p class="text-sm"><i class='lucide-loader-2 animate-spin'></i> AIstylist is typing...</p>
+                    <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                `;
+                chatMessages.appendChild(aiMessage);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                // Fetch AI reply from backend
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message })
+                })
+                .then(response => response.json())
+                .then(result => {
                     aiMessage.innerHTML = `
-                        <p class="text-sm">Thank you for your question! I'm here to help with your fashion needs. This is a demo response - in the full version, I would provide personalized advice based on your style preferences.</p>
+                        <p class="text-sm">${result.reply ? result.reply : 'Sorry, the AI stylist is temporarily unavailable.'}</p>
                         <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                     `;
-                    chatMessages.appendChild(aiMessage);
                     chatMessages.scrollTop = chatMessages.scrollHeight;
-                }, 1000);
+                })
+                .catch(error => {
+                    aiMessage.innerHTML = `
+                        <p class="text-sm text-red-500">Error: Could not get a response from the AI stylist.</p>
+                        <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    `;
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
             });
         }
     });

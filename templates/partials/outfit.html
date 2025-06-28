@@ -1,6 +1,21 @@
 <!-- Today's Outfit -->
 <div class="mb-8">
-    <h2 class="text-lg font-light mb-4">Today's Outfit Recommendation</h2>
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-light">Today's Outfit Recommendation</h2>
+        <div class="flex items-center gap-3">
+            <!-- Daily Status Display -->
+            <div id="dailyStatus" class="text-xs text-[#9A9A9A] hidden">
+                <span id="statusText">Loading...</span>
+            </div>
+            <!-- Manual Generation Button -->
+            <button id="generateManualBtn" onclick="generateManualOutfit()" 
+                    class="px-4 py-2 bg-[#E8D0D0] text-[#333333] rounded-lg hover:bg-[#D0C0C0] transition-colors text-sm font-medium">
+                <i data-lucide="sparkles" class="w-4 h-4 inline mr-1"></i>
+                Generate New
+            </button>
+        </div>
+    </div>
+    
     <div class="outfit-carousel rounded-3xl border-0 shadow-sm overflow-hidden">
         <div class="relative">
             <!-- Outfit Navigation -->
@@ -12,15 +27,13 @@
             </button>
 
             <!-- Outfit Image -->
-            <style>
-                .outfit-slide { display: none; }
-                .outfit-slide.active { display: flex; justify-content: center; }
-            </style>
             <div class="bg-[#F5F0E8] h-[450px] flex items-center justify-center">
                 {% if outfits %}
                     {% for outfit in outfits %}
-                    <div class="outfit-slide {% if loop.index0 == 0 %}active{% endif %}" data-index="{{ loop.index0 }}">
-                        <img src="{{ outfit.image }}" alt="{{ outfit.name }}" class="h-[400px] w-auto object-contain">
+                    <div class="outfit-slide {% if loop.index0 == 0 %}active{% endif %}" data-index="{{ loop.index0 }}" style="display: {% if loop.index0 == 0 %}flex{% else %}none{% endif %}; justify-content: center;">
+                        <div class="relative inline-block" style="height:400px">
+                            <img src="{{ outfit.image }}" alt="{{ outfit.name }}" class="h-[400px] w-auto object-contain">
+                        </div>
                     </div>
                     {% endfor %}
                 {% else %}
@@ -114,7 +127,135 @@ function nextOutfit() {
     showOutfit(newIndex);
 }
 
+async function generateManualOutfit() {
+    const btn = document.getElementById('generateManualBtn');
+    const originalText = btn.innerHTML;
+    
+    // Disable button and show loading
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 inline mr-1 animate-spin"></i>Generating...';
+    
+    try {
+        const response = await fetch('/generate-single-outfit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Add the new outfit to the carousel
+            addOutfitToCarousel(result.outfit);
+            alert('New outfit generated successfully!');
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="ban" class="w-4 h-4 inline mr-1"></i>Already generated today';
+        } else {
+            alert('Error: ' + result.error);
+            if(result.error && result.error.includes('already generated')){
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="ban" class="w-4 h-4 inline mr-1"></i>Already generated today';
+            }
+        }
+    } catch (error) {
+        alert('Generation failed: ' + error.message);
+    } finally {
+        // Restore button if not disabled
+        if(!btn.disabled){
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
+function addOutfitToCarousel(outfit) {
+    const carousel = document.querySelector('.bg-[#F5F0E8]');
+    const outfitSlides = carousel.querySelectorAll('.outfit-slide');
+    const newIndex = outfitSlides.length;
+    
+    // Create new slide
+    const newSlide = document.createElement('div');
+    newSlide.className = 'outfit-slide';
+    newSlide.setAttribute('data-index', newIndex);
+    newSlide.innerHTML = `<img src="${outfit.image}" alt="${outfit.name}" class="h-[400px] w-auto object-contain">`;
+    
+    // Add to carousel
+    carousel.appendChild(newSlide);
+    
+    // Update dots
+    const dotsContainer = document.querySelector('.outfit-dots');
+    const newDot = document.createElement('div');
+    newDot.className = 'w-1.5 h-1.5 rounded-full bg-[#E8E8E8]';
+    dotsContainer.appendChild(newDot);
+    
+    // Switch to new outfit
+    showOutfit(newIndex);
+}
+
+async function loadDailyStatus() {
+    try {
+        const response = await fetch('/daily-outfits-status');
+        const result = await response.json();
+        
+        if (result.success) {
+            const status = result.status;
+            const statusDiv = document.getElementById('dailyStatus');
+            const statusText = document.getElementById('statusText');
+            const btn = document.getElementById('generateManualBtn');
+            
+            let statusMessage = '';
+            if (status.today_generated) {
+                statusMessage = `✅ Generated ${status.generated_count}/4 outfits`;
+            } else if (status.should_generate) {
+                statusMessage = `⏰ Ready to generate (after 5 AM Vancouver)`;
+            } else {
+                statusMessage = `⏳ Next generation: ${status.next_generation}`;
+            }
+            
+            statusText.textContent = statusMessage;
+            statusDiv.classList.remove('hidden');
+
+            // Check if manual outfit already generated today
+            fetch('/output')
+            // Instead, use a dedicated endpoint if needed, or check via /generate-single-outfit error
+            // For now, try to call the endpoint and disable if error
+            checkManualOutfitStatus(btn);
+        }
+    } catch (error) {
+        console.error('Failed to load daily status:', error);
+    }
+}
+
+async function checkManualOutfitStatus(btn) {
+    // Try to generate with dry-run, or implement a dedicated endpoint for status
+    // For now, try to call the endpoint with a HEAD or GET (should be POST, so this is a workaround)
+    // Instead, check by trying to generate and catching the error
+    // Here, we just try to generate and if error, disable
+    try {
+        const response = await fetch('/generate-single-outfit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        });
+        const result = await response.json();
+        if (!result.success && result.error && result.error.includes('already generated')) {
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="ban" class="w-4 h-4 inline mr-1"></i>Already generated today';
+        } else if(result.success) {
+            // If it succeeded, we just generated one, so disable
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="ban" class="w-4 h-4 inline mr-1"></i>Already generated today';
+        }
+    } catch (error) {
+        // ignore
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     showOutfit(0);
+    loadDailyStatus();
 });
 </script>
