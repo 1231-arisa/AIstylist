@@ -202,13 +202,12 @@ def create_app():
         output_dir = app.config['OUTPUT_FOLDER']
         closet_dir = app.config['UPLOAD_FOLDER']
         avatar_path = os.path.join(os.path.dirname(__file__), 'data', 'avatar.txt')
-        
+                    
         # Select one outfit
         criteria = {'weather': weather} if weather else None
         outfit_files_list = select_multiple_outfits(num=1, closet_dir=closet_dir, criteria=criteria)
         
-        if not outfit_files_list:
-            return None
+        return None
         
         files = outfit_files_list[0]
         outfit_key = get_outfit_key(files)
@@ -265,7 +264,7 @@ def create_app():
             if f.startswith(f"manual_outfit_{today_str}_") and f.endswith(".png")
         ]
         return len(manual_files) > 0
-
+    
     @app.route('/')
     def index():
         """Main page"""
@@ -422,32 +421,61 @@ def create_app():
     
     @app.route('/chat', methods=['POST'])
     def chat():
-        """Q&A chat endpoint: receives a user message and returns an AI reply."""
+        """Q&A chat endpoint: receives a user message or image and returns an AI reply or outfit recommendation."""
         try:
             data = request.get_json()
-            user_message = data.get('message', '').strip()
-            if not user_message:
-                return jsonify({'error': 'No message provided.'}), 400
+            user_message = data.get('message', '').strip() if data.get('message') else ''
+            image_base64 = data.get('image_base64', None)
 
-            # Use OpenAI API for chat
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                return jsonify({'error': 'OpenAI API key not set.'}), 500
+            if image_base64:
+                # If an image is sent, analyze and recommend matching closet items
+                import base64, tempfile
+                from generate_item import analyze_image
+                from style_agent import select_outfit, load_closet_txts
 
-            import openai
-            openai.api_key = api_key
-            try:
-                response = openai.ChatCompletion.create(
-                    model='gpt-3.5-turbo',
-                    messages=[{"role": "system", "content": "You are a helpful AI fashion stylist. Answer user questions about fashion, outfits, and style."},
-                              {"role": "user", "content": user_message}]
-                )
-                reply = response['choices'][0]['message']['content']
-            except Exception as e:
-                # If API fails (e.g., billing error), return fallback
-                print(f"OpenAI API error: {e}")
-                reply = "Sorry, the AI stylist is temporarily unavailable. Please try again later."
-            return jsonify({'reply': reply})
+                # Save the image temporarily
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
+                    tmp.write(base64.b64decode(image_base64.split(',')[-1]))
+                    tmp_path = tmp.name
+
+                # Analyze the clothing item
+                api_key = os.getenv("OPENAI_API_KEY")
+                description = analyze_image(tmp_path, api_key=api_key)
+
+                # Select recommended outfit from closet
+                criteria = {}  # You can add weather/occasion info if needed
+                outfit_files = select_outfit(criteria)
+                closet_items = load_closet_txts(app.config['UPLOAD_FOLDER'])
+                outfit_descs = [item['desc'] for item in closet_items if item['file'] in outfit_files]
+
+                # Build the response text
+                if outfit_descs:
+                    reply = "Here are some items from your closet that would match this piece:\n" + "\n".join(outfit_descs)
+                else:
+                    reply = "Sorry, I couldn't find a matching outfit in your closet."
+
+                return jsonify({'reply': reply})
+
+            elif user_message:
+                # If only text, use OpenAI chat as before
+                api_key = os.getenv("OPENAI_API_KEY")
+                if not api_key:
+                    return jsonify({'error': 'OpenAI API key not set.'}), 500
+
+                import openai
+                openai.api_key = api_key
+                try:
+                    response = openai.ChatCompletion.create(
+                        model='gpt-3.5-turbo',
+                        messages=[{"role": "system", "content": "You are a helpful AI fashion stylist. Answer user questions about fashion, outfits, and style."},
+                                  {"role": "user", "content": user_message}]
+                    )
+                    reply = response['choices'][0]['message']['content']
+                except Exception as e:
+                    reply = "Sorry, the AI stylist is temporarily unavailable. Please try again later."
+                return jsonify({'reply': reply})
+            else:
+                return jsonify({'error': 'No message or image provided.'}), 400
         except Exception as e:
             return jsonify({'error': f'Chat endpoint error: {str(e)}'}), 500
     

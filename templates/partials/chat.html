@@ -164,18 +164,47 @@
         `;
         chatMessages.appendChild(photoMessage);
         chatMessages.scrollTop = chatMessages.scrollHeight;
-        
-        // Simulate AI response about the photo
-        setTimeout(() => {
-            const aiResponse = document.createElement('div');
-            aiResponse.className = 'bg-[#F5F0E8] rounded-2xl p-3 max-w-[80%]';
-            aiResponse.innerHTML = `
-                <p class="text-sm">Great photo! I can see your outfit. Let me analyze it and provide some style suggestions...</p>
-                <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-            `;
-            chatMessages.appendChild(aiResponse);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }, 1000);
+
+        // Show loading AI message
+        const aiMessage = document.createElement('div');
+        aiMessage.className = 'bg-[#F5F0E8] rounded-2xl p-3 max-w-[80%]';
+        aiMessage.innerHTML = `
+            <p class="text-sm"><i class='lucide-loader-2 animate-spin'></i> AIstylist is analyzing your photo...</p>
+            <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+        `;
+        chatMessages.appendChild(aiMessage);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Convert image to base64 and send to backend
+        fetch(imageUrl)
+            .then(res => res.blob())
+            .then(blob => {
+                const reader = new FileReader();
+                reader.onloadend = function() {
+                    const base64data = reader.result;
+                    fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image_base64: base64data })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        aiMessage.innerHTML = `
+                            <p class="text-sm">${result.reply ? result.reply : 'Sorry, the AI stylist is temporarily unavailable.'}</p>
+                            <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                        `;
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    })
+                    .catch(error => {
+                        aiMessage.innerHTML = `
+                            <p class="text-sm text-red-500">Error: Could not get a response from the AI stylist.</p>
+                            <p class="text-xs text-[#9A9A9A] mt-1">AIstylist • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                        `;
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    });
+                };
+                reader.readAsDataURL(blob);
+            });
     }
 
     function sendSuggestedQuestion(question) {
