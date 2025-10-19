@@ -1,37 +1,1907 @@
-{% extends "layout.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIstylist - Your Personal Fashion AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .bg-custom { background-color: #FAFAFA; }
+        .text-custom { color: #333333; }
+        .text-muted { color: #9A9A9A; }
+        .bg-accent { background-color: #E8D0D0; }
+        .bg-accent-hover { background-color: #E0C0C0; }
+        .bg-card { background-color: #F5F0E8; }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        /* Hide debug information */
+        .debug-info { display: none !important; }
+        
+        /* Hide any debug information that might appear */
+        [class*="debug"], [id*="debug"], [data-debug] {
+            display: none !important;
+        }
+        
+        /* Hide IP addresses and similar debug info */
+        body::after {
+            display: none !important;
+        }
+        
+        /* Ensure full width usage for closet grid */
+        #closet-grid {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
+        .category-section {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+    </style>
+</head>
+<body class="bg-custom text-custom font-sans">
+    <div class="min-h-screen">
+        <!-- Navigation Tabs -->
+        <div class="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 grid grid-cols-3 z-40">
+            <button onclick="showTab('home')" class="tab-button flex flex-col items-center justify-center text-accent">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Home</span>
+            </button>
+            <button onclick="showTab('chat')" class="tab-button flex flex-col items-center justify-center text-muted hover:text-accent">
+                <i data-lucide="message-square" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Chat</span>
+            </button>
+            <button onclick="showTab('closet')" class="tab-button flex flex-col items-center justify-center text-muted hover:text-accent">
+                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Closet</span>
+            </button>
+        </div>
 
-{% block content %}
-<div class="min-h-screen bg-[#FAFAFA] text-[#333333] font-sans">
-    <div class="tabs" data-active-tab="home">
-        <!-- Main Content -->
-        <div class="pb-20">
-            <!-- Home Tab -->
-            <div class="tab-content" data-tab="home">
-                <div class="p-4 pt-12">
-                    <!-- Header -->
-                    {% include "partials/header.html" %}
-
-                    <!-- Today's Outfit -->
-                    {% include "partials/outfit.html" %}
-
-                    <!-- Quick Actions -->
-                    {% include "partials/quick_actions.html" %}
+        <!-- Home Tab -->
+        <div id="home-tab" class="tab-content pb-20">
+            <div class="p-4 pt-12">
+                <!-- Header -->
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-2xl font-light tracking-wide"><span id="greeting">Good morning</span>, <span id="user-name">{{ user.name if user else 'there' }}</span>!</h1>
+                        <p class="text-sm text-muted">What would you like to wear today?</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div id="weather-info" class="text-right">
+                            <div class="flex items-center gap-1 text-sm">
+                                <span class="text-sm">{{ get_weather_icon(weather_info.condition if weather_info else 'Sunny') }}</span>
+                                <span class="font-medium">{{ weather_info.temperature if weather_info else '22' }}°C</span>
+                            </div>
+                            <p class="text-xs text-muted">{{ weather_info.condition if weather_info else 'Sunny' }}</p>
+                            <p class="text-xs text-muted">{{ get_current_date() }}</p>
+                        </div>
+                        {% if user %}
+                        <!-- Logged in user -->
+                        <div class="relative">
+                            <button onclick="toggleUserMenu()" class="w-10 h-10 rounded-full bg-accent flex items-center justify-center hover:bg-accent-hover transition-colors focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer">
+                                <span class="text-custom font-semibold">{{ user.initial }}</span>
+                            </button>
+                            <!-- User dropdown menu -->
+                            <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
+                                <div class="px-4 py-2 border-b border-gray-100">
+                                    <p class="text-sm font-medium">{{ user.name }}</p>
+                                    <p class="text-xs text-muted">{{ user.email }}</p>
+                                </div>
+                                <a href="/logout" class="block px-4 py-2 text-sm hover:bg-gray-50">
+                                    <i data-lucide="log-out" class="w-4 h-4 inline mr-2"></i>
+                                    Logout
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Not logged in - show weather icon -->
+                        <a href="/login" class="w-10 h-10 rounded-full bg-card flex items-center justify-center hover:bg-accent transition-colors cursor-pointer" title="Sign in with Google">
+                            <span class="text-xl" id="weather-icon">{{ weather_info.icon if weather_info and weather_info.icon else '🌤' }}</span>
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
 
-            <!-- Chat Tab -->
-            <div class="tab-content hidden" data-tab="chat">
-                {% include "partials/chat.html" %}
-            </div>
+                <!-- Outfit Recommendations -->
+                <div class="mb-8">
+                    <h2 class="text-lg font-light mb-4">Today's Outfit Recommendation</h2>
+                    {% if outfits %}
+                        <div class="space-y-4">
+                            {% for outfit in outfits[:2] %}
+                            <div class="bg-white rounded-3xl shadow-sm overflow-hidden">
+                                <div class="bg-card h-64 flex items-center justify-center">
+                                    <img src="{{ outfit.image }}" alt="Outfit recommendation" class="h-48 w-auto object-contain">
+                                </div>
+                            <div class="p-4">
+                                <h3 class="font-medium">{{ outfit.name }}</h3>
+                                <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-xs">{{ get_weather_icon(outfit.weather) }}</span>
+                                        <span class="text-xs text-muted">{{ outfit.weather }}</span>
+                                    </div>
+                                    <span class="text-xs text-muted">•</span>
+                                    <span class="text-xs text-muted">{{ outfit.temperature }}°C</span>
+                                    <span class="text-xs text-muted">•</span>
+                                    <div class="flex items-center gap-1">
+                                        <i data-lucide="sparkles" class="w-3 h-3 text-muted"></i>
+                                        <span class="text-xs text-muted font-medium">{{ outfit.occasion }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="bg-white rounded-3xl shadow-sm overflow-hidden">
+                            <div class="bg-card h-64 flex items-center justify-center">
+                                <div class="text-center">
+                                    <i data-lucide="shirt" class="w-16 h-16 text-muted mx-auto mb-4"></i>
+                                    <p class="text-muted">Upload your closet items to get recommendations</p>
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-medium">Weather-Appropriate Look</h3>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-xs">{{ get_weather_icon(weather_info.condition if weather_info else 'Sunny') }}</span>
+                                        <span class="text-xs text-muted">{{ weather_info.condition if weather_info else 'Sunny' }}</span>
+                                    </div>
+                                    <span class="text-xs text-muted">•</span>
+                                    <span class="text-xs text-muted">{{ weather_info.temperature if weather_info else '22' }}°C</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
 
-            <!-- Closet Tab -->
-            <div class="tab-content hidden" data-tab="closet">
-                {% include "partials/closet.html" %}
+                <!-- Quick Actions -->
+                <div class="mb-8">
+                    <h2 class="text-lg font-light mb-4">Quick Actions</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-card rounded-2xl p-4 cursor-pointer" onclick="showTab('chat')">
+                            <div class="flex flex-col items-center text-center">
+                                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center mb-2">
+                                    <i data-lucide="camera" class="w-5 h-5 text-muted"></i>
+                                </div>
+                                <h3 class="text-sm font-medium">Style an Outfit</h3>
+                                <p class="text-xs text-muted mt-1">Upload a photo to get feedback</p>
+                            </div>
+                        </div>
+                        <div class="bg-accent rounded-2xl p-4 cursor-pointer" onclick="showTab('chat')">
+                            <div class="flex flex-col items-center text-center">
+                                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center mb-2">
+                                    <i data-lucide="message-square" class="w-5 h-5 text-muted"></i>
+                                </div>
+                                <h3 class="text-sm font-medium">Ask AIstylist</h3>
+                                <p class="text-xs text-muted mt-1">Get fashion advice from AI</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features -->
+                <div class="mb-8">
+                    <h2 class="text-lg font-light mb-4">Features</h2>
+                    <div class="space-y-4">
+                        <div class="bg-white rounded-2xl p-4 shadow-sm">
+                            <div class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors" onclick="showWeatherForecast()">
+                                <i data-lucide="cloud" class="w-5 h-5 text-blue-500"></i>
+                                <div>
+                                    <h3 class="font-medium">Weather Integration</h3>
+                                    <p class="text-sm text-muted">Get weather-appropriate outfit suggestions</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onclick="generateManualOutfit()">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="sparkles" class="w-5 h-5 text-purple-500"></i>
+                                <div class="flex-1">
+                                    <h3 class="font-medium">Generate Bonus Outfit</h3>
+                                    <p class="text-sm text-muted">One extra outfit per day</p>
+                                </div>
+                                <div id="generation-status" class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">
+                                    Available
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm">
+                            <div class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors" onclick="switchTab('closet')">
+                                <i data-lucide="shirt" class="w-5 h-5 text-green-500"></i>
+                                <div>
+                                    <h3 class="font-medium">Create Your Closet</h3>
+                                    <p class="text-sm text-muted">Upload your clothes and build your wardrobe</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA -->
+                <div class="text-center">
+                    <a href="/login" class="inline-block bg-accent hover:bg-accent-hover text-custom px-8 py-3 rounded-full font-medium transition-colors">
+                        Get Started with Google
+                    </a>
+                    <p class="text-sm text-muted mt-4">7-day free trial • $20/month after</p>
+                </div>
             </div>
         </div>
 
-        <!-- Navigation Tabs -->
-        {% include "partials/navigation.html" %}
+        <!-- Chat Tab -->
+        <div id="chat-tab" class="tab-content pb-20 hidden">
+            <div class="p-4 pt-12">
+                <div class="mb-8">
+                    <h1 class="text-2xl font-light tracking-wide">Chat with AIstylist</h1>
+                    <p class="text-sm text-muted">Get personalized fashion advice</p>
+                </div>
+
+                <!-- Upload Area -->
+                <div class="bg-white rounded-3xl shadow-sm p-6 mb-6">
+                    <div class="border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center">
+                        <p class="text-sm font-medium mb-2">Upload an outfit photo</p>
+                        <p class="text-xs text-muted mb-4 text-center">Take a photo or choose from your gallery</p>
+                        <!-- Camera input (mobile) -->
+                        <input type="file" id="camera-upload" accept="image/*,.heic,.heif" capture="environment" class="hidden" onchange="handleImageUpload(event)">
+                        <!-- Gallery input -->
+                        <input type="file" id="gallery-upload" accept="image/*,.heic,.heif" class="hidden" onchange="handleImageUpload(event)">
+                        <div class="flex gap-3 flex-wrap justify-center">
+                            <label for="camera-upload" class="bg-accent hover:bg-accent-hover text-custom px-5 py-2.5 rounded-full cursor-pointer flex items-center gap-2 shadow-sm transition-all hover:shadow-md">
+                                <i data-lucide="camera" class="w-4 h-4"></i>
+                                <span class="text-sm font-medium">Take Photo</span>
+                            </label>
+                            <label for="gallery-upload" class="bg-card hover:bg-accent text-custom px-5 py-2.5 rounded-full cursor-pointer flex items-center gap-2 shadow-sm transition-all hover:shadow-md">
+                                <i data-lucide="image" class="w-4 h-4"></i>
+                                <span class="text-sm font-medium">From Gallery</span>
+                            </label>
+                        </div>
+                        <div id="uploaded-image" class="mt-4 hidden">
+                            <img id="image-preview" class="rounded-lg max-w-48 max-h-48 object-cover" alt="Uploaded image">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Messages -->
+                <div class="bg-white rounded-3xl shadow-sm p-4 mb-6">
+                    <div id="chat-messages" class="space-y-4 max-h-64 overflow-y-auto mb-4">
+                        <div class="bg-card rounded-2xl p-3 max-w-[80%]">
+                            <p class="text-sm">Hello! How can I help with your style today?</p>
+                            <p class="text-xs text-muted mt-1">AIstylist • <span id="current-time"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <input type="text" id="chat-input" placeholder="Ask anything about fashion..." 
+                               class="flex-1 rounded-full border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+                               onkeypress="handleKeyPress(event)">
+                        <button onclick="sendMessage()" class="bg-accent hover:bg-accent-hover text-custom px-4 py-2 rounded-full">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Suggested Questions -->
+                <div>
+                    <h3 class="text-sm font-medium mb-3">Suggested Questions</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setChatInput('What colors match with gray?')" 
+                                class="bg-card text-custom hover:bg-accent rounded-full px-3 py-1 text-sm">
+                            What colors match with gray?
+                        </button>
+                        <button onclick="setChatInput('How to style a white blouse?')" 
+                                class="bg-card text-custom hover:bg-accent rounded-full px-3 py-1 text-sm">
+                            How to style a white blouse?
+                        </button>
+                        <button onclick="setChatInput('Casual outfit ideas')" 
+                                class="bg-card text-custom hover:bg-accent rounded-full px-3 py-1 text-sm">
+                            Casual outfit ideas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Closet Tab -->
+        <div id="closet-tab" class="tab-content pb-24 hidden">
+            <div class="px-2 pt-12">
+                <div class="mb-6 px-2">
+                    <div class="flex justify-between items-center">
+                        <div>
+                    <h1 class="text-2xl font-light tracking-wide">My Closet</h1>
+                    <p class="text-sm text-muted">All your saved items</p>
+                        </div>
+                        <button onclick="showCollections()" class="bg-accent hover:bg-accent-hover text-custom px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2">
+                            <i data-lucide="heart" class="w-4 h-4"></i>
+                            View Saved Outfits
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search -->
+                <div class="relative mb-6 px-2">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted"></i>
+                    <input type="text" placeholder="Search your closet..." 
+                           class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-accent">
+                </div>
+
+                <!-- Categories -->
+                <div class="mb-6 overflow-x-auto px-2">
+                    <div class="flex gap-2 min-w-max" id="category-buttons">
+                        <button onclick="filterByCategory('All')" class="category-btn bg-accent text-custom border-accent rounded-full px-4 py-1 text-sm" data-category="All">All</button>
+                        <button onclick="filterByCategory('Tops')" class="category-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-category="Tops">Tops</button>
+                        <button onclick="filterByCategory('Bottoms')" class="category-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-category="Bottoms">Bottoms</button>
+                        <button onclick="filterByCategory('Dresses')" class="category-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-category="Dresses">Dresses</button>
+                        <button onclick="filterByCategory('Shoes')" class="category-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-category="Shoes">Shoes</button>
+                        <button onclick="filterByCategory('Accessories')" class="category-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-category="Accessories">Accessories</button>
+                        <button onclick="filterByCategory('Outerwear')" class="category-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-category="Outerwear">Outerwear</button>
+                    </div>
+                </div>
+
+                <!-- Closet Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 w-full px-2" id="closet-grid">
+                    {% if closet_items and closet_items|length > 0 %}
+                        {% for item in closet_items %}
+                        {% set analysis = item.analysis|from_json if item.analysis else {} %}
+                        {% set raw_cat = analysis.category or 'Clothing' %}
+                        {% set cat_map = {
+                            'Top': 'Tops', 'Tops': 'Tops',
+                            'Bottom': 'Bottoms', 'Bottoms': 'Bottoms',
+                            'Dress': 'Dresses', 'Dresses': 'Dresses',
+                            'Shoe': 'Shoes', 'Shoes': 'Shoes',
+                            'Accessory': 'Accessories', 'Accessories': 'Accessories', 'Bags': 'Accessories', 'Bag': 'Accessories',
+                            'Outerwear': 'Outerwear', 'Jacket': 'Outerwear', 'Coat': 'Outerwear', 'Cardigan': 'Outerwear', 'Hoodie': 'Outerwear',
+                            'Other': 'Accessories', 'Pending': 'Accessories', 'Clothing': 'Tops'
+                        } %}
+                        {% set item_category = cat_map.get(raw_cat, raw_cat) %}
+                        <div class="closet-item bg-white rounded-2xl shadow-sm overflow-hidden relative group" 
+                             data-filename="{{ item.filename }}"
+                             data-category="{{ item_category }}">
+                            <div class="h-64 sm:h-72 md:h-80 lg:h-96 bg-gray-100 flex items-center justify-center overflow-hidden">
+                                {% if item.url %}
+                                <img src="{{ item.url }}" alt="{{ item.original_name }}" class="w-full h-full object-contain">
+                                {% else %}
+                                <i data-lucide="shopping-bag" class="w-8 h-8 text-muted"></i>
+                                {% endif %}
+                            </div>
+                            <!-- Delete button (visible on hover) -->
+                            <button class="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-xs"
+                                    onclick="event.stopPropagation(); deleteClothingItem(this.closest('[data-filename]'), '{{ item.filename }}');">
+                                ×
+                            </button>
+                            <div class="p-4 sm:p-6 md:p-8">
+                                {% if item.analysis %}
+                                    <p class="text-base font-medium mb-2 leading-tight" title="{{ analysis.item_name or item.original_name }}">{{ (analysis.item_name or item.original_name)[:40] }}{% if (analysis.item_name or item.original_name)|length > 40 %}...{% endif %}</p>
+                                    <p class="text-sm text-muted mb-2">{{ item_category }}</p>
+                                    {% if analysis.description and analysis.description != "Clothing item (analysis pending)" %}
+                                        <p class="text-xs text-gray-600 line-clamp-2 hidden sm:block" title="{{ analysis.description }}">
+                                            {{ analysis.description[:60] }}{% if analysis.description|length > 60 %}...{% endif %}
+                                        </p>
+                                    {% endif %}
+                                {% else %}
+                                    <p class="text-xs sm:text-sm font-medium mb-1 truncate">{{ item.original_name }}</p>
+                                    <p class="text-xs text-muted">Analyzing...</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Empty state - show when no items -->
+                        <div class="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 text-center py-12">
+                            <i data-lucide="shopping-bag" class="w-16 h-16 text-muted mx-auto mb-4"></i>
+                            <p class="text-muted">No items in your closet yet</p>
+                            <p class="text-xs text-muted mt-2">Click the + button to add your first item</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Add Item Button -->
+                <button onclick="showUploadOptions()" class="fixed bottom-20 right-4 w-12 h-12 rounded-full bg-accent hover:bg-accent-hover text-custom text-xl shadow-lg z-50">
+                    +
+                </button>
+                
+                <!-- Hidden file inputs for closet upload -->
+                <input type="file" id="closet-upload-camera" accept="image/*,.heic,.heif" capture="environment" multiple class="hidden" onchange="handleClosetUpload(event)">
+                <input type="file" id="closet-upload-library" accept="image/*,.heic,.heif" multiple class="hidden" onchange="handleClosetUpload(event)">
+            </div>
+        </div>
     </div>
-</div>
-{% endblock %}
+
+    <!-- Collections Modal -->
+    <div id="collectionsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-2">
+            <div class="bg-white rounded-2xl w-full max-w-4xl mx-auto max-h-[95vh] overflow-y-auto">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-light">Saved Outfits</h2>
+                        <button onclick="closeCollectionsModal()" class="text-gray-500 hover:text-gray-700">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Collection Type Filter -->
+                    <div class="mb-6">
+                        <div class="flex gap-2 flex-wrap" id="collection-filters">
+                            <button onclick="filterCollections('All')" class="collection-filter-btn bg-accent text-custom border-accent rounded-full px-4 py-1 text-sm" data-filter="All">All</button>
+                            <button onclick="filterCollections('Spring')" class="collection-filter-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-filter="Spring">Spring</button>
+                            <button onclick="filterCollections('Summer')" class="collection-filter-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-filter="Summer">Summer</button>
+                            <button onclick="filterCollections('Fall')" class="collection-filter-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-filter="Fall">Fall</button>
+                            <button onclick="filterCollections('Winter')" class="collection-filter-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-filter="Winter">Winter</button>
+                            <button onclick="filterCollections('Casual')" class="collection-filter-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-filter="Casual">Casual</button>
+                            <button onclick="filterCollections('Formal')" class="collection-filter-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm" data-filter="Formal">Formal</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Collections Grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="collections-grid">
+                        <!-- Collections will be loaded here -->
+                    </div>
+                    
+                    <!-- Empty state -->
+                    <div id="collections-empty" class="text-center py-12 hidden">
+                        <i data-lucide="bookmark" class="w-16 h-16 text-muted mx-auto mb-4"></i>
+                        <p class="text-muted">No saved outfits yet</p>
+                        <p class="text-xs text-muted mt-2">Save your favorite outfit recommendations to build your collection</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weather Forecast Modal -->
+    <div id="weatherModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-2">
+            <div class="bg-white rounded-2xl w-full max-w-md mx-auto max-h-[95vh] overflow-y-auto">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-light">Weather Forecast</h2>
+                        <button onclick="closeWeatherModal()" class="text-gray-500 hover:text-gray-700">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <div id="weatherForecast" class="space-y-3 mb-6">
+                        <!-- Weather cards will be loaded here -->
+                    </div>
+                    <div id="outfitDisplay" class="hidden">
+                        <h3 class="text-lg font-medium mb-3">Outfit for <span id="selectedDate"></span></h3>
+                        <div class="mb-4">
+                            <div class="flex space-x-2 text-sm">
+                                <button id="outfitTab1" class="px-3 py-1 bg-blue-500 text-white rounded-full text-xs" onclick="switchOutfitTab(1)">Casual</button>
+                                <button id="outfitTab2" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-xs" onclick="switchOutfitTab(2)">Business</button>
+                                <button id="outfitTab3" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-xs" onclick="switchOutfitTab(3)">Chic</button>
+                            </div>
+                        </div>
+                        <div id="outfitCarousel" class="relative overflow-hidden">
+                            <div id="outfitSlides" class="flex transition-transform duration-300 ease-in-out">
+                                <!-- Outfit slides will be generated here -->
+                            </div>
+                            <button id="prevBtn" class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 rounded-full p-2 shadow-lg" onclick="prevOutfit()">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                            </button>
+                            <button id="nextBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 rounded-full p-2 shadow-lg" onclick="nextOutfit()">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <div class="flex justify-center mt-4">
+                            <div id="outfitDots" class="flex space-x-2">
+                                <!-- Dots will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Weather forecast functionality
+        let currentForecast = [];
+        let closetItems = [];
+        let currentOutfitTab = 1;
+        let currentSlide = 0;
+        let outfitSlides = [];
+
+        async function showWeatherForecast() {
+            const modal = document.getElementById('weatherModal');
+            modal.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('/api/weather/forecast');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentForecast = data.forecast;
+                    displayWeatherForecast(data.forecast);
+                } else {
+                    console.error('Failed to load weather forecast');
+                }
+            } catch (error) {
+                console.error('Error loading weather forecast:', error);
+            }
+        }
+
+        function closeWeatherModal() {
+            const modal = document.getElementById('weatherModal');
+            modal.classList.add('hidden');
+            document.getElementById('outfitDisplay').classList.add('hidden');
+        }
+
+        function displayWeatherForecast(forecast) {
+            const container = document.getElementById('weatherForecast');
+            container.innerHTML = '';
+            
+            forecast.forEach((day, index) => {
+                const dayCard = document.createElement('div');
+                dayCard.className = 'bg-gray-50 rounded-lg p-4 cursor-pointer hover:bg-blue-50 transition-colors flex items-center justify-between';
+                dayCard.onclick = () => showOutfitForDay(day, index);
+                
+                dayCard.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="text-2xl">${day.icon}</div>
+                        <div>
+                            <div class="font-medium text-gray-900">${day.day}</div>
+                            <div class="text-sm text-gray-500">${day.condition}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-semibold">${day.temperature}°C</div>
+                        <div class="text-xs text-gray-400">H: ${day.humidity}%</div>
+                    </div>
+                `;
+                
+                container.appendChild(dayCard);
+            });
+        }
+
+        async function showOutfitForDay(day, dayIndex) {
+            // Load closet items if not already loaded
+            if (closetItems.length === 0) {
+                try {
+                    const response = await fetch('/closet');
+                    const data = await response.json();
+                    if (data.success) {
+                        closetItems = data.items;
+                        console.log('Loaded closet items:', closetItems);
+                    }
+                } catch (error) {
+                    console.error('Error loading closet items:', error);
+                }
+            }
+            
+            // Show outfit display
+            document.getElementById('selectedDate').textContent = `${day.day}, ${day.date}`;
+            document.getElementById('outfitDisplay').classList.remove('hidden');
+            
+            // Generate 3 outfit patterns
+            generateOutfitPatterns(day);
+            
+            // Reset to first tab and slide
+            currentOutfitTab = 1;
+            currentSlide = 0;
+            switchOutfitTab(1);
+        }
+
+        function generateOutfitPatterns(day) {
+            // Group items by category
+            const itemsByCategory = {
+                'Tops': [],
+                'Bottoms': [],
+                'Dresses': [],
+                'Shoes': [],
+                'Accessories': [],
+                'Outerwear': [],
+                'Clothing': [] // fallback category
+            };
+            
+            closetItems.forEach(item => {
+                try {
+                    const analysis = JSON.parse(item.analysis || '{}');
+                    const category = analysis.category || item.category || 'Clothing';
+                    if (itemsByCategory[category]) {
+                        itemsByCategory[category].push(item);
+                    } else {
+                        itemsByCategory['Clothing'].push(item);
+                    }
+                } catch (e) {
+                    itemsByCategory['Clothing'].push(item);
+                }
+            });
+            
+            // Generate 3 different outfit patterns
+            const patterns = [
+                generateOutfitPattern('Casual', itemsByCategory, day, 'casual'),
+                generateOutfitPattern('Business', itemsByCategory, day, 'business'),
+                generateOutfitPattern('Chic', itemsByCategory, day, 'chic')
+            ];
+            
+            outfitSlides = patterns;
+            displayOutfitSlides();
+            generateDots();
+        }
+
+        function generateOutfitPattern(styleName, itemsByCategory, day, styleType) {
+            const outfit = [];
+            const temp = day.temperature;
+            const condition = day.condition.toLowerCase();
+            
+            // Smart outfit selection with layering support
+            if (itemsByCategory['Dresses'].length > 0 && (styleType === 'chic' || Math.random() > 0.5)) {
+                // For dresses, use dress instead of top+bottom
+                outfit.push({
+                    ...itemsByCategory['Dresses'][Math.floor(Math.random() * itemsByCategory['Dresses'].length)],
+                    category: 'Dress'
+                });
+            } else {
+                // Select base layer (tank, camisole, t-shirt, blouse)
+                if (itemsByCategory['Tops'].length > 0) {
+                    let baseLayerCandidates = itemsByCategory['Tops'].filter(item => 
+                        item.analysis && (
+                            item.analysis.includes('tank') || 
+                            item.analysis.includes('camisole') || 
+                            item.analysis.includes('t-shirt') || 
+                            item.analysis.includes('blouse')
+                        )
+                    );
+                    
+                    if (baseLayerCandidates.length === 0) {
+                        baseLayerCandidates = itemsByCategory['Tops'];
+                    }
+                    
+                    outfit.push({
+                        ...baseLayerCandidates[Math.floor(Math.random() * baseLayerCandidates.length)],
+                        category: 'Base Layer',
+                        layerType: 'base'
+                    });
+                }
+                
+                // Select outer layer (sweater, hoodie, cardigan) for layering
+                if (itemsByCategory['Tops'].length > 1 && (temp < 20 || styleType === 'business' || styleType === 'chic')) {
+                    let outerLayerCandidates = itemsByCategory['Tops'].filter(item => 
+                        item.analysis && (
+                            item.analysis.includes('sweater') || 
+                            item.analysis.includes('hoodie') || 
+                            item.analysis.includes('cardigan') ||
+                            item.analysis.includes('blazer')
+                        )
+                    );
+                    
+                    if (outerLayerCandidates.length > 0) {
+                        outfit.push({
+                            ...outerLayerCandidates[Math.floor(Math.random() * outerLayerCandidates.length)],
+                            category: 'Outer Layer',
+                            layerType: 'outer'
+                        });
+                    }
+                }
+                
+                // Select bottom
+                if (itemsByCategory['Bottoms'].length > 0) {
+                    outfit.push({
+                        ...itemsByCategory['Bottoms'][Math.floor(Math.random() * itemsByCategory['Bottoms'].length)],
+                        category: 'Bottoms'
+                    });
+                }
+            }
+            
+            // Select one pair of shoes
+            if (itemsByCategory['Shoes'].length > 0) {
+                outfit.push({
+                    ...itemsByCategory['Shoes'][Math.floor(Math.random() * itemsByCategory['Shoes'].length)],
+                    category: 'Shoes'
+                });
+            }
+            
+            // Select one outerwear if needed
+            if (itemsByCategory['Outerwear'].length > 0 && (temp < 20 || condition.includes('rain'))) {
+                outfit.push({
+                    ...itemsByCategory['Outerwear'][Math.floor(Math.random() * itemsByCategory['Outerwear'].length)],
+                    category: 'Outerwear'
+                });
+            }
+            
+            // Select one accessory
+            if (itemsByCategory['Accessories'].length > 0) {
+                outfit.push({
+                    ...itemsByCategory['Accessories'][Math.floor(Math.random() * itemsByCategory['Accessories'].length)],
+                    category: 'Accessories'
+                });
+            }
+            
+            // If we don't have enough items, fill with any available items (but avoid duplicates)
+            if (outfit.length < 3) {
+                const allItems = Object.values(itemsByCategory).flat();
+                const usedItems = new Set(outfit.map(item => item.filename || item.id));
+                const availableItems = allItems.filter(item => {
+                    const itemId = item.filename || item.id;
+                    return !usedItems.has(itemId);
+                });
+                
+                while (outfit.length < 4 && availableItems.length > 0) {
+                    const randomItem = availableItems[Math.floor(Math.random() * availableItems.length)];
+                    outfit.push(randomItem);
+                    const itemId = randomItem.filename || randomItem.id;
+                    usedItems.add(itemId);
+                    // Remove the selected item from available items
+                    const index = availableItems.findIndex(item => (item.filename || item.id) === itemId);
+                    if (index > -1) {
+                        availableItems.splice(index, 1);
+                    }
+                }
+            }
+            
+            return {
+                name: styleName,
+                items: outfit.slice(0, 6), // Limit to 6 items max
+                weather: `${day.temperature}°C, ${day.condition}`,
+                style: styleType
+            };
+        }
+
+        function displayOutfitSlides() {
+            const slidesContainer = document.getElementById('outfitSlides');
+            slidesContainer.innerHTML = '';
+            
+            outfitSlides.forEach((pattern, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'w-full flex-shrink-0 px-2';
+                
+                if (pattern.items.length > 0) {
+                    // Group items by category for better display
+                    const itemsByCategory = {};
+                    pattern.items.forEach(item => {
+                        try {
+                            const analysis = JSON.parse(item.analysis || '{}');
+                            const category = analysis.category || item.category || 'Other';
+                            if (!itemsByCategory[category]) itemsByCategory[category] = [];
+                            itemsByCategory[category].push({...item, analysis});
+                        } catch (e) {
+                            if (!itemsByCategory['Other']) itemsByCategory['Other'] = [];
+                            itemsByCategory['Other'].push(item);
+                        }
+                    });
+                    
+                    slide.innerHTML = `
+                        <div class="space-y-4">
+                            <div class="text-center">
+                                <div class="text-sm font-medium text-gray-700">${pattern.name} Style</div>
+                                <div class="text-xs text-gray-500">${pattern.weather}</div>
+                            </div>
+                            
+                            <!-- Outfit as a complete combination -->
+                            <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4">
+                                <div class="text-center mb-3">
+                                    <div class="text-xs font-medium text-gray-600">Complete Outfit</div>
+                                </div>
+                                
+                                <div class="space-y-3">
+                                    ${Object.entries(itemsByCategory).map(([category, items]) => `
+                                        <div class="text-center">
+                                            <div class="text-xs font-medium text-gray-500 mb-2">${category}</div>
+                                            <div class="flex justify-center gap-2">
+                                                ${items.map((item, index) => `
+                                                    <div class="bg-white rounded-lg p-2 shadow-sm border relative ${item.layerType ? 'ring-2 ring-blue-200' : ''}">
+                                                        ${item.layerType === 'base' ? `
+                                                            <div class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full" title="Base Layer"></div>
+                                                        ` : item.layerType === 'outer' ? `
+                                                            <div class="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full" title="Outer Layer"></div>
+                                                        ` : ''}
+                                                        ${item.image_url ? `
+                                                            <img src="${item.image_url}" alt="${item.name || 'Clothing Item'}" class="w-16 h-16 object-cover rounded mb-1">
+                                                        ` : `
+                                                            <div class="w-16 h-16 bg-gray-200 rounded mb-1 flex items-center justify-center">
+                                                                <i data-lucide="shirt" class="w-6 h-6 text-gray-400"></i>
+                                                            </div>
+                                                        `}
+                                                        <div class="text-xs font-medium truncate">${item.name || 'Clothing Item'}</div>
+                                                        ${item.layerType ? `
+                                                            <div class="text-xs text-gray-400">${item.layerType === 'base' ? 'Base' : 'Over'}</div>
+                                                        ` : ''}
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                
+                                <div class="mt-3 text-center">
+                                    <div class="text-xs text-gray-600 bg-white rounded-full px-3 py-1 inline-block">
+                                        ✨ This is your complete ${pattern.name.toLowerCase()} outfit
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    slide.innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <i data-lucide="shirt" class="w-12 h-12 mx-auto mb-2 text-gray-300"></i>
+                            <p>No items for ${pattern.name} style</p>
+                            <p class="text-sm">Upload more clothes to see suggestions</p>
+                        </div>
+                    `;
+                }
+                
+                slidesContainer.appendChild(slide);
+            });
+            
+            updateSlidePosition();
+            lucide.createIcons();
+        }
+
+        function generateDots() {
+            const dotsContainer = document.getElementById('outfitDots');
+            dotsContainer.innerHTML = '';
+            
+            outfitSlides.forEach((_, index) => {
+                const dot = document.createElement('button');
+                dot.className = `w-2 h-2 rounded-full ${index === currentSlide ? 'bg-blue-500' : 'bg-gray-300'}`;
+                dot.onclick = () => goToSlide(index);
+                dotsContainer.appendChild(dot);
+            });
+        }
+
+        function switchOutfitTab(tabNumber) {
+            currentOutfitTab = tabNumber;
+            
+            // Update tab buttons
+            for (let i = 1; i <= 3; i++) {
+                const tab = document.getElementById(`outfitTab${i}`);
+                if (i === tabNumber) {
+                    tab.className = 'px-3 py-1 bg-blue-500 text-white rounded-full text-xs';
+                } else {
+                    tab.className = 'px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-xs';
+                }
+            }
+            
+            // Switch to corresponding slide
+            currentSlide = tabNumber - 1;
+            updateSlidePosition();
+            generateDots();
+        }
+
+        function updateSlidePosition() {
+            const slidesContainer = document.getElementById('outfitSlides');
+            slidesContainer.style.transform = `translateX(-${currentSlide * 100}%)`;
+        }
+
+        function prevOutfit() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlidePosition();
+                generateDots();
+            }
+        }
+
+        function nextOutfit() {
+            if (currentSlide < outfitSlides.length - 1) {
+                currentSlide++;
+                updateSlidePosition();
+                generateDots();
+            }
+        }
+
+        function goToSlide(slideIndex) {
+            currentSlide = slideIndex;
+            updateSlidePosition();
+            generateDots();
+        }
+
+        // Update current time
+        document.getElementById('current-time').textContent = new Date().toLocaleTimeString();
+
+        // Tab functionality
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('text-accent');
+                btn.classList.add('text-muted');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            // Add active class to selected button
+            event.target.closest('.tab-button').classList.add('text-accent');
+            event.target.closest('.tab-button').classList.remove('text-muted');
+        }
+
+        // Chat functionality
+        function setChatInput(text) {
+            document.getElementById('chat-input').value = text;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage(message, true);
+            input.value = '';
+            
+            // Show loading message
+            addMessage("Thinking...", false);
+            
+            // Send to server
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Remove loading message
+                const messagesContainer = document.getElementById('chat-messages');
+                if (messagesContainer.lastChild && messagesContainer.lastChild.textContent.includes('Thinking...')) {
+                    messagesContainer.removeChild(messagesContainer.lastChild);
+                }
+                
+                if (data.reply) {
+                    addMessage(data.reply, false);
+                } else if (data.error) {
+                    addMessage("Sorry, I encountered an error: " + data.error, false);
+                }
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
+                // Remove loading message
+                const messagesContainer = document.getElementById('chat-messages');
+                if (messagesContainer.lastChild && messagesContainer.lastChild.textContent.includes('Thinking...')) {
+                    messagesContainer.removeChild(messagesContainer.lastChild);
+                }
+                addMessage("Sorry, there was an error processing your message.", false);
+            });
+        }
+
+        function addMessage(text, isUser, imageUrl = null) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `rounded-2xl p-3 max-w-[80%] ${isUser ? 'bg-gray-200 ml-auto' : 'bg-card'}`;
+            
+            let content = '';
+            
+            // Add image if provided
+            if (imageUrl) {
+                content += `<img src="${imageUrl}" alt="Uploaded image" class="rounded-lg max-w-full mb-2" style="max-height: 200px; object-fit: contain;">`;
+            }
+            
+            // Add text only if not empty
+            if (text && text.trim() !== '') {
+                content += `<p class="text-sm">${text}</p>`;
+            }
+            
+            // Add timestamp
+            content += `<p class="text-xs text-muted mt-1">${isUser ? 'You' : 'AIstylist'} • ${new Date().toLocaleTimeString()}</p>`;
+            
+            messageDiv.innerHTML = content;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageBase64 = e.target.result;
+                    
+                    // Don't show preview in upload area - only show in chat conversation
+                    // document.getElementById('image-preview').src = imageBase64;
+                    // document.getElementById('uploaded-image').classList.remove('hidden');
+                    
+                    // Show user's uploaded image in chat conversation (image only, no text)
+                    addMessage("", true, imageBase64);
+                    
+                    // Show loading message in chat
+                    addMessage("Analyzing your image and adding to closet...", false);
+                    
+                    // Send to server
+                    fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            image_base64: imageBase64
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.reply) {
+                            // Show AI response
+                            addMessage(data.reply, false);
+                            
+                            // Show success notification
+                            if (data.item_added) {
+                                showUploadMessage('✓ Item added to your closet!', 'success');
+                            }
+                        } else if (data.error) {
+                            addMessage("Sorry, I couldn't process that image. " + data.error, false);
+                            showUploadMessage('Failed to process image', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error sending image:', error);
+                        addMessage("Sorry, there was an error processing your image.", false);
+                        showUploadMessage('Error uploading image', 'error');
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function showUploadOptions() {
+            console.log('+ button clicked, opening file selection directly');
+            // Skip modal and open file selection directly
+            // Check if we're on mobile to decide between camera and library
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // On mobile, default to photo library (more common use case)
+                document.getElementById('closet-upload-library').click();
+            } else {
+                // Desktop: open file dialog
+                document.getElementById('closet-upload-library').click();
+            }
+        }
+
+        function showUploadModal() {
+            console.log('showUploadModal called');
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('uploadOptionsModal');
+            if (!modal) {
+                console.log('Creating new upload modal');
+                modal = document.createElement('div');
+                modal.id = 'uploadOptionsModal';
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-2xl w-full max-w-sm mx-auto">
+                        <div class="p-6">
+                            <h3 class="text-lg font-medium text-center mb-6">📸 Add Items to Closet</h3>
+                            <div class="space-y-3">
+                                <button onclick="selectPhotoLibrary()" class="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                                    <span class="text-gray-700">Photo Library</span>
+                                    <i data-lucide="image" class="w-5 h-5 text-gray-500"></i>
+                                </button>
+                                <button onclick="selectTakePhoto()" class="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                                    <span class="text-gray-700">Take Photo</span>
+                                    <i data-lucide="camera" class="w-5 h-5 text-gray-500"></i>
+                                </button>
+                            </div>
+                            <button onclick="closeUploadModal()" class="w-full mt-4 py-3 text-gray-500 hover:text-gray-700 transition-colors">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            console.log('Showing upload modal');
+            modal.classList.remove('hidden');
+        }
+
+        function closeUploadModal() {
+            const modal = document.getElementById('uploadOptionsModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function selectPhotoLibrary() {
+            closeUploadModal();
+            document.getElementById('closet-upload-library').click();
+        }
+
+        function selectTakePhoto() {
+            closeUploadModal();
+            document.getElementById('closet-upload-camera').click();
+        }
+
+
+        function handleClosetUpload(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                // Show loading message
+                showUploadMessage(`Uploading ${files.length} item(s)...`, 'info');
+                
+                // Process each file
+                Array.from(files).forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        // Convert to base64 for API
+                        const base64 = e.target.result.split(',')[1];
+                        
+                        // Send to backend for analysis
+                        analyzeClothingImage(base64, file.name, index + 1, files.length);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+
+        function analyzeClothingImage(base64Image, fileName, currentIndex, totalFiles) {
+            fetch('/api/analyze-clothing', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image: base64Image,
+                    filename: fileName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.duplicate) {
+                        showUploadMessage(`Duplicate detected for ${fileName}. Skipped adding.`, 'info');
+                        return;
+                    }
+                    // Add item to closet display
+                    addItemToCloset(data.analysis, fileName);
+                    showUploadMessage(`Item ${currentIndex}/${totalFiles} analyzed successfully!`, 'success');
+                } else {
+                    // Even if analysis fails, still add the item to closet
+                    const fallbackAnalysis = {
+                        item_name: fileName.split('.')[0],
+                        category: 'Clothing',
+                        color: 'Unknown',
+                        style: 'Unknown',
+                        description: 'Clothing item (analysis pending)',
+                        image_url: null,
+                        pending_analysis: true
+                    };
+                    addItemToCloset(fallbackAnalysis, fileName);
+                    showUploadMessage(`Item ${currentIndex}/${totalFiles} uploaded (analysis pending)`, 'info');
+                }
+            })
+            .catch(error => {
+                console.error('Error analyzing image:', error);
+                // Even if API fails, still add the item to closet
+                const fallbackAnalysis = {
+                    item_name: fileName.split('.')[0],
+                    category: 'Clothing',
+                    color: 'Unknown',
+                    style: 'Unknown',
+                    description: 'Clothing item (analysis pending)',
+                    image_url: null,
+                    pending_analysis: true
+                };
+                addItemToCloset(fallbackAnalysis, fileName);
+                showUploadMessage(`Item ${currentIndex}/${totalFiles} uploaded (analysis pending)`, 'info');
+            });
+        }
+
+        // Normalize category label to plural used by filters/buttons
+        function toPlural(category) {
+            const c = (category || 'Clothing').trim();
+            const map = { 'Top': 'Tops', 'Bottom': 'Bottoms', 'Dress': 'Dresses' };
+            return map[c] || c;
+        }
+
+        function addItemToCloset(analysis, fileName) {
+            const closetGrid = document.getElementById('closet-grid');
+            const newItem = document.createElement('div');
+            // Ensure new items participate in filters/grouping
+            newItem.className = 'closet-item bg-white rounded-2xl shadow-sm overflow-hidden relative group';
+            newItem.setAttribute('data-filename', fileName);
+            newItem.dataset.category = toPlural(analysis.category || 'Clothing');
+            
+            // Create image preview
+            const imagePreview = document.createElement('div');
+            imagePreview.className = 'h-36 sm:h-40 md:h-44 lg:h-48 bg-gray-100 flex items-center justify-center relative';
+            
+            // Add image if available
+            if (analysis.image_url) {
+                const img = document.createElement('img');
+                img.src = analysis.image_url;
+                img.className = 'w-full h-full object-contain';
+                imagePreview.appendChild(img);
+            } else {
+                const icon = document.createElement('i');
+                icon.setAttribute('data-lucide', 'shirt');
+                icon.className = 'w-8 h-8 text-muted';
+                imagePreview.appendChild(icon);
+            }
+            
+            // Add delete button (appears on hover)
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-xs';
+            deleteButton.innerHTML = '×';
+            deleteButton.onclick = function(e) {
+                e.stopPropagation();
+                deleteClothingItem(newItem, fileName);
+            };
+            imagePreview.appendChild(deleteButton);
+            
+            // Create item info
+            const itemInfo = document.createElement('div');
+            itemInfo.className = 'p-2 sm:p-3 md:p-4';
+            
+            const itemName = document.createElement('p');
+            itemName.className = 'text-sm font-medium mb-1 leading-tight';
+            const fullName = analysis.item_name || fileName.split('.')[0];
+            itemName.textContent = fullName.length > 30 ? fullName.substring(0, 30) + '...' : fullName;
+            itemName.title = fullName;
+            
+            const itemCategory = document.createElement('p');
+            itemCategory.className = 'text-xs text-muted mb-1';
+            if (analysis.pending_analysis) {
+                itemCategory.textContent = analysis.category + ' (Pending Analysis)';
+                itemCategory.className += ' text-orange-500';
+            } else {
+                itemCategory.textContent = analysis.category || 'Clothing';
+            }
+            
+            itemInfo.appendChild(itemName);
+            itemInfo.appendChild(itemCategory);
+            
+            newItem.appendChild(imagePreview);
+            newItem.appendChild(itemInfo);
+            
+            // Append then regroup by category
+            closetGrid.appendChild(newItem);
+            groupClosetItems();
+            
+            // Reinitialize Lucide icons
+            lucide.createIcons();
+        }
+
+        // Group closet items into category sections
+        function groupClosetItems() {
+            const grid = document.getElementById('closet-grid');
+            if (!grid) return;
+
+            // Collect existing items
+            const items = Array.from(grid.querySelectorAll('.closet-item'));
+            if (items.length === 0) return;
+
+            // Build category map
+            const order = ['Tops', 'Bottoms', 'Dresses', 'Shoes', 'Accessories', 'Outerwear', 'Clothing'];
+            const byCategory = new Map();
+            items.forEach(el => {
+                const cat = toPlural((el.dataset.category || 'Clothing').trim());
+                if (!byCategory.has(cat)) byCategory.set(cat, []);
+                byCategory.get(cat).push(el);
+            });
+
+            // Clear grid and rebuild sections
+            grid.innerHTML = '';
+            const categories = Array.from(byCategory.keys()).sort((a,b)=>{
+                const ia = order.indexOf(a) === -1 ? 999 : order.indexOf(a);
+                const ib = order.indexOf(b) === -1 ? 999 : order.indexOf(b);
+                return ia - ib || a.localeCompare(b);
+            });
+
+            categories.forEach(cat => {
+                // Section header
+                const header = document.createElement('div');
+                header.className = 'category-header col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 text-sm font-medium text-muted mt-4 mb-2';
+                header.textContent = cat;
+                grid.appendChild(header);
+
+                // Section grid
+                const section = document.createElement('div');
+                section.className = 'category-section grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 w-full px-2';
+                byCategory.get(cat).forEach(el => section.appendChild(el));
+                grid.appendChild(section);
+            });
+        }
+
+        // Normalize existing items on load and group
+        document.addEventListener('DOMContentLoaded', () => {
+            const items = document.querySelectorAll('#closet-grid .closet-item');
+            items.forEach(el => {
+                el.dataset.category = toPlural(el.dataset.category || 'Clothing');
+            });
+            groupClosetItems();
+        });
+
+        function deleteClothingItem(itemElement, fileName) {
+            if (confirm('Are you sure you want to delete this item?')) {
+                // Remove from display
+                itemElement.remove();
+                
+                // Send delete request to backend
+                fetch('/api/delete-clothing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        filename: fileName
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showUploadMessage('Item deleted successfully!', 'success');
+                    } else {
+                        showUploadMessage('Failed to delete item from database', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting item:', error);
+                    showUploadMessage('Item removed from display', 'info');
+                });
+            }
+        }
+
+        // Category filter function
+        function filterByCategory(category) {
+            console.log('Filtering by category:', category);
+            
+            // Update button styles
+            const buttons = document.querySelectorAll('.category-btn');
+            buttons.forEach(btn => {
+                if (btn.dataset.category === category) {
+                    btn.classList.remove('bg-transparent', 'text-muted', 'border-gray-200');
+                    btn.classList.add('bg-accent', 'text-custom', 'border-accent');
+                } else {
+                    btn.classList.remove('bg-accent', 'text-custom', 'border-accent');
+                    btn.classList.add('bg-transparent', 'text-muted', 'border-gray-200');
+                }
+            });
+            
+            const closetGrid = document.getElementById('closet-grid');
+                
+                if (category === 'All') {
+                // Remove any filtered container
+                const filteredContainer = document.querySelector('.filtered-items-container');
+                if (filteredContainer) {
+                    filteredContainer.remove();
+                }
+                
+                // Show all items and category headers/sections
+                const allItems = Array.from(document.querySelectorAll('.closet-item'));
+                const categoryHeaders = Array.from(document.querySelectorAll('.category-header'));
+                const categorySections = Array.from(document.querySelectorAll('.category-section'));
+                
+                // Reset all items to visible
+                allItems.forEach(item => {
+                    item.style.display = '';
+                });
+                
+                // Show all category headers and sections
+                categoryHeaders.forEach(header => header.style.display = '');
+                categorySections.forEach(section => section.style.display = '');
+                
+                // Remove any empty state
+                const filterEmptyState = document.querySelector('.empty-filter-state');
+                if (filterEmptyState) filterEmptyState.remove();
+                return;
+            }
+
+            // For specific category: show/hide items and their parent sections
+            const allItems = Array.from(document.querySelectorAll('.closet-item'));
+            const categoryHeaders = Array.from(document.querySelectorAll('.category-header'));
+            const categorySections = Array.from(document.querySelectorAll('.category-section'));
+                    const normalizedFilterCategory = category.toLowerCase().trim();
+                    
+            // First, hide all category headers and sections
+            categoryHeaders.forEach(header => header.style.display = 'none');
+            categorySections.forEach(section => section.style.display = 'none');
+            
+            // Show only items that match the category and their parent sections
+            let visibleCount = 0;
+            allItems.forEach(item => {
+                const normalizedItemCategory = (item.dataset.category || '').toLowerCase().trim();
+                const matches = normalizedItemCategory === normalizedFilterCategory ||
+                        normalizedItemCategory.includes(normalizedFilterCategory) ||
+                               normalizedFilterCategory.includes(normalizedItemCategory);
+                
+                if (matches) {
+                        item.style.display = '';
+                    // Show the parent section of this item
+                    const parentSection = item.closest('.category-section');
+                    if (parentSection) {
+                        parentSection.style.display = 'grid';
+                    }
+                    // Show the parent header of this item
+                    const parentHeader = parentSection?.previousElementSibling;
+                    if (parentHeader && parentHeader.classList.contains('category-header')) {
+                        parentHeader.style.display = '';
+                    }
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                }
+            });
+            
+            // Remove any existing empty state
+            const filterEmptyState = document.querySelector('.empty-filter-state');
+            if (filterEmptyState) filterEmptyState.remove();
+            
+            // Show empty state if no items match
+            if (visibleCount === 0) {
+                    const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 text-center py-12 empty-filter-state';
+                    emptyDiv.innerHTML = `
+                        <i data-lucide="inbox" class="w-16 h-16 text-muted mx-auto mb-4"></i>
+                        <p class="text-muted">No ${category} items found</p>
+                        <p class="text-xs text-muted mt-2">Try selecting a different category</p>
+                    `;
+                    closetGrid.appendChild(emptyDiv);
+                    lucide.createIcons();
+            }
+        }
+
+        function showUploadMessage(message, type) {
+            // Create or update upload message
+            let messageDiv = document.getElementById('upload-message');
+            if (!messageDiv) {
+                messageDiv = document.createElement('div');
+                messageDiv.id = 'upload-message';
+                messageDiv.className = 'fixed top-4 left-4 right-4 z-50 p-4 rounded-lg shadow-lg';
+                document.body.appendChild(messageDiv);
+            }
+            
+            const colors = {
+                'info': 'bg-blue-500 text-white',
+                'success': 'bg-green-500 text-white',
+                'error': 'bg-red-500 text-white'
+            };
+            
+            messageDiv.className = `fixed top-4 left-4 right-4 z-50 p-4 rounded-lg shadow-lg ${colors[type] || colors.info}`;
+            messageDiv.textContent = message;
+            
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                if (messageDiv) {
+                    messageDiv.remove();
+                }
+            }, 3000);
+        }
+
+        // Toggle user menu
+        function toggleUserMenu() {
+            const menu = document.getElementById('user-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('user-menu');
+            const button = event.target.closest('button[onclick="toggleUserMenu()"]');
+            
+            if (menu && !menu.contains(event.target) && !button) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        // Manual outfit generation function
+        function generateManualOutfit() {
+            const statusBadge = document.getElementById('generation-status');
+            
+            // Check if already used
+            if (statusBadge.textContent === 'Used Today') {
+                alert('You have already generated your bonus outfit today. Come back tomorrow!');
+                return;
+            }
+            
+            // Confirm with user
+            if (!confirm('Generate a bonus outfit?\n(One per day)')) {
+                return;
+            }
+            
+            // Update status to loading
+            statusBadge.textContent = 'Generating...';
+            statusBadge.className = 'text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600';
+            
+            // Call API
+            fetch('/api/generate-manual-outfit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusBadge.textContent = 'Used Today';
+                    statusBadge.className = 'text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600';
+                    alert('✨ ' + data.message + '\n\nReload the page to see your new outfit!');
+                    // Reload the page to show the new outfit
+                    window.location.reload();
+                } else {
+                    statusBadge.textContent = 'Available';
+                    statusBadge.className = 'text-xs px-2 py-1 rounded-full bg-green-100 text-green-600';
+                    alert('❌ ' + (data.error || 'Failed to generate outfit'));
+                }
+            })
+            .catch(error => {
+                console.error('Generation error:', error);
+                statusBadge.textContent = 'Available';
+                statusBadge.className = 'text-xs px-2 py-1 rounded-full bg-green-100 text-green-600';
+                alert('❌ An error occurred. Please try again.');
+            });
+        }
+
+        // Time-based greeting function
+        function getGreeting() {
+            const now = new Date();
+            const hour = now.getHours();
+            
+            if (5 <= hour && hour < 12) {
+                return "Good morning";
+            } else if (12 <= hour && hour < 18) {
+                return "Good afternoon";
+            } else {
+                return "Good evening";
+            }
+        }
+
+        function updateGreeting() {
+            const greetingElement = document.getElementById('greeting');
+            if (greetingElement) {
+                greetingElement.textContent = getGreeting();
+            }
+        }
+
+        // Delete clothing item function
+        async function deleteClothingItem(element, filename) {
+            if (!confirm('Are you sure you want to delete this item?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/delete-clothing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ filename: filename })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Remove the element from the DOM
+                    element.remove();
+                    showMessage('Item deleted successfully', 'success');
+                    
+                    // Update the closet display
+                    updateClosetDisplay();
+                } else {
+                    showMessage(data.error || 'Failed to delete item', 'error');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showMessage('An error occurred while deleting the item', 'error');
+            }
+        }
+
+        // Update closet display after deletion
+        function updateClosetDisplay() {
+            // Reload the closet tab to refresh the display
+            const closetTab = document.getElementById('closet-tab');
+            if (!closetTab.classList.contains('hidden')) {
+                // If closet tab is currently visible, reload the page to refresh
+                window.location.reload();
+            }
+        }
+
+        // Collections functionality
+        let collections = [];
+        let currentCollectionFilter = 'All';
+
+        async function showCollections() {
+            const modal = document.getElementById('collectionsModal');
+            modal.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('/api/collections');
+                const data = await response.json();
+                
+                if (data.success) {
+                    collections = data.collections;
+                    displayCollections();
+                } else {
+                    console.error('Failed to load collections');
+                    showMessage('Failed to load collections', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading collections:', error);
+                showMessage('Error loading collections', 'error');
+            }
+        }
+
+        function closeCollectionsModal() {
+            const modal = document.getElementById('collectionsModal');
+            modal.classList.add('hidden');
+        }
+
+        function displayCollections() {
+            const grid = document.getElementById('collections-grid');
+            const empty = document.getElementById('collections-empty');
+            
+            if (collections.length === 0) {
+                grid.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            
+            empty.classList.add('hidden');
+            
+            const filteredCollections = currentCollectionFilter === 'All' 
+                ? collections 
+                : collections.filter(collection => 
+                    collection.collection_type === currentCollectionFilter ||
+                    collection.tags.includes(currentCollectionFilter)
+                );
+            
+            grid.innerHTML = filteredCollections.map(collection => `
+                <div class="collection-item bg-white rounded-2xl shadow-sm overflow-hidden relative group" data-collection-id="${collection.id}">
+                    <div class="h-32 bg-gray-100 flex items-center justify-center overflow-hidden">
+                        ${collection.avatar_image_url ? 
+                            `<img src="${collection.avatar_image_url}" alt="${collection.collection_name}" class="w-full h-full object-cover">` :
+                            `<i data-lucide="user" class="w-8 h-8 text-muted"></i>`
+                        }
+                    </div>
+                    <!-- Delete button (visible on hover) -->
+                    <button class="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-xs"
+                            onclick="event.stopPropagation(); deleteCollection(${collection.id});">
+                        ×
+                    </button>
+                    <div class="p-2">
+                        <p class="text-xs font-medium truncate">${collection.collection_name}</p>
+                        <p class="text-xs text-muted mb-1">${collection.collection_type}</p>
+                        <p class="text-xs text-gray-600 line-clamp-2" title="${collection.outfit_description}">
+                            ${collection.outfit_description.length > 60 ? collection.outfit_description.substring(0, 60) + '...' : collection.outfit_description}
+                        </p>
+                        ${collection.tags ? `<p class="text-xs text-blue-600 mt-1">${collection.tags}</p>` : ''}
+                        <!-- Reuse button -->
+                        <button onclick="reuseOutfit(${collection.id})" class="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded-full transition-colors">
+                            Reuse Outfit
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            lucide.createIcons();
+        }
+
+        function filterCollections(filter) {
+            currentCollectionFilter = filter;
+            
+            // Update filter buttons
+            document.querySelectorAll('.collection-filter-btn').forEach(btn => {
+                if (btn.dataset.filter === filter) {
+                    btn.className = 'collection-filter-btn bg-accent text-custom border-accent rounded-full px-4 py-1 text-sm';
+                } else {
+                    btn.className = 'collection-filter-btn bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm';
+                }
+            });
+            
+            displayCollections();
+        }
+
+        async function deleteCollection(collectionId) {
+            if (!confirm('Are you sure you want to delete this collection?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/delete-collection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ collection_id: collectionId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Remove from collections array
+                    collections = collections.filter(c => c.id !== collectionId);
+                    displayCollections();
+                    showMessage('Collection deleted successfully', 'success');
+                } else {
+                    showMessage(data.error || 'Failed to delete collection', 'error');
+                }
+            } catch (error) {
+                console.error('Delete collection error:', error);
+                showMessage('An error occurred while deleting the collection', 'error');
+            }
+        }
+
+        // Function to save collection (can be called from other parts of the app)
+        async function saveCollection(collectionName, collectionType, avatarImageUrl, outfitDescription, tags = '') {
+            try {
+                const response = await fetch('/api/save-collection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        collection_name: collectionName,
+                        collection_type: collectionType,
+                        avatar_image_url: avatarImageUrl,
+                        outfit_description: outfitDescription,
+                        tags: tags
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('Collection saved successfully!', 'success');
+                    return true;
+                } else {
+                    showMessage(data.error || 'Failed to save collection', 'error');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Save collection error:', error);
+                showMessage('An error occurred while saving the collection', 'error');
+                return false;
+            }
+        }
+
+        // Function to reuse outfit from collection
+        async function reuseOutfit(collectionId) {
+            const collection = collections.find(c => c.id === collectionId);
+            if (!collection) {
+                showMessage('Collection not found', 'error');
+                return;
+            }
+
+            if (!confirm(`Reuse outfit "${collection.collection_name}"?\n\nDuplicate check will be performed - if a similar outfit already exists, it won't be created again.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/reuse-outfit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        collection_id: collectionId,
+                        collection_name: collection.collection_name,
+                        collection_type: collection.collection_type,
+                        outfit_description: collection.outfit_description,
+                        tags: collection.tags
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.duplicate) {
+                        showMessage('This outfit already exists - no new outfit was created.', 'info');
+                    } else {
+                        showMessage('Outfit reused successfully!', 'success');
+                    }
+                } else {
+                    showMessage(data.error || 'Failed to reuse outfit', 'error');
+                }
+            } catch (error) {
+                console.error('Reuse outfit error:', error);
+                showMessage('An error occurred while reusing the outfit', 'error');
+            }
+        }
+
+        // Tab switching function (alias for showTab)
+        function switchTab(tabName) {
+            showTab(tabName);
+        }
+
+        // Tab switching function
+        function showTab(tabName) {
+            console.log('Switching to tab:', tabName);
+            
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Remove active state from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(btn => {
+                btn.classList.remove('text-accent');
+                btn.classList.add('text-muted');
+            });
+            
+            // Show selected tab
+            const selectedTab = document.getElementById(tabName + '-tab');
+            if (selectedTab) {
+                selectedTab.classList.remove('hidden');
+            }
+            
+            // Add active state to selected tab button
+            const selectedButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+            if (selectedButton) {
+                selectedButton.classList.remove('text-muted');
+                selectedButton.classList.add('text-accent');
+            }
+            
+            // If switching to closet tab, ensure items are properly displayed
+            if (tabName === 'closet') {
+                // Trigger a small delay to ensure DOM is ready
+                setTimeout(() => {
+                    const closetGrid = document.getElementById('closet-grid');
+                    if (closetGrid && closetGrid.children.length === 0) {
+                        // If grid is empty, reload the page to fetch data
+                        window.location.reload();
+                    }
+                }, 100);
+            }
+        }
+
+        // Update weather information
+        async function updateWeatherInfo() {
+            try {
+                const response = await fetch('/api/weather');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update weather display
+                    const weatherIcon = document.querySelector('#weather-icon');
+                    const temperature = document.querySelector('#weather-temperature');
+                    const condition = document.querySelector('#weather-condition');
+                    
+                    if (weatherIcon) weatherIcon.textContent = data.weather.icon;
+                    if (temperature) temperature.textContent = data.weather.temperature + '°C';
+                    if (condition) condition.textContent = data.weather.condition;
+                    
+                    console.log('Weather updated:', data.weather);
+                }
+            } catch (error) {
+                console.error('Weather update error:', error);
+            }
+        }
+
+        // Update greeting when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateGreeting();
+            
+            // Update every minute
+            setInterval(updateGreeting, 60000);
+            
+            // Update weather every 5 minutes for real-time display
+            updateWeatherInfo(); // Initial update
+            setInterval(updateWeatherInfo, 300000); // 5 minutes
+            
+            // Initialize tab state
+            showTab('home');
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+

@@ -15,4 +15,17 @@ numpy==1.26.4
 pytz==2024.1
 
 # OAuth for Google login
+Flask-Dance==7.0.0
+
+# Payment processing
+stripe==10.12.0
+
+# Mobile image format support
+pillow-heif>=1.1.0
+
+# Scheduled tasks
+apscheduler>=3.11.0
+
+# Alternative AI models
+together>=1.5.0
 Flask-Dance==7.0.0 

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIstylist - Your Personal Fashion AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .bg-custom { background-color: #FAFAFA; }
+        .text-custom { color: #333333; }
+        .text-muted { color: #9A9A9A; }
+        .bg-accent { background-color: #E8D0D0; }
+        .bg-accent-hover { background-color: #E0C0C0; }
+        .bg-card { background-color: #F5F0E8; }
+    </style>
+</head>
+<body class="bg-custom text-custom font-sans">
+    <div class="min-h-screen">
+        <!-- Navigation Tabs -->
+        <div class="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 grid grid-cols-3">
+            <button onclick="showTab('home')" class="tab-button flex flex-col items-center justify-center text-muted hover:text-accent">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Home</span>
+            </button>
+            <button onclick="showTab('chat')" class="tab-button flex flex-col items-center justify-center text-muted hover:text-accent">
+                <i data-lucide="message-square" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Chat</span>
+            </button>
+            <button onclick="showTab('closet')" class="tab-button flex flex-col items-center justify-center text-muted hover:text-accent">
+                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Closet</span>
+            </button>
+        </div>
+
+        <!-- Home Tab -->
+        <div id="home-tab" class="tab-content pb-20">
+            <div class="p-4 pt-12">
+                <!-- Header -->
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-2xl font-light tracking-wide"><span id="greeting">Good morning</span>, <span id="user-name">there</span>!</h1>
+                        <p class="text-sm text-muted">What would you like to wear today?</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div id="weather-info" class="text-right hidden">
+                            <div class="flex items-center gap-1 text-sm">
+                                <i data-lucide="sun" class="w-4 h-4"></i>
+                                <span class="font-medium" id="weather-temp">22°C</span>
+                            </div>
+                            <p class="text-xs text-muted" id="weather-condition">Sunny</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-card flex items-center justify-center">
+                            <span class="text-muted" id="user-initial">U</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Outfit Recommendations -->
+                <div class="mb-8">
+                    <h2 class="text-lg font-light mb-4">Today's Outfit Recommendation</h2>
+                    <div id="outfit-container" class="bg-white rounded-3xl shadow-sm overflow-hidden">
+                        <div class="bg-card h-64 flex items-center justify-center">
+                            <div class="text-center">
+                                <i data-lucide="shirt" class="w-16 h-16 text-muted mx-auto mb-4"></i>
+                                <p class="text-muted">Upload your closet items to get recommendations</p>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-medium">Casual Chic Look</h3>
+                            <p class="text-xs text-muted mt-1">Perfect for today's weather</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="mb-8">
+                    <h2 class="text-lg font-light mb-4">Quick Actions</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-card rounded-2xl p-4 cursor-pointer" onclick="showTab('chat')">
+                            <div class="flex flex-col items-center text-center">
+                                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center mb-2">
+                                    <i data-lucide="camera" class="w-5 h-5 text-muted"></i>
+                                </div>
+                                <h3 class="text-sm font-medium">Style an Outfit</h3>
+                                <p class="text-xs text-muted mt-1">Upload a photo to get feedback</p>
+                            </div>
+                        </div>
+                        <div class="bg-accent rounded-2xl p-4 cursor-pointer" onclick="showTab('chat')">
+                            <div class="flex flex-col items-center text-center">
+                                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center mb-2">
+                                    <i data-lucide="message-square" class="w-5 h-5 text-muted"></i>
+                                </div>
+                                <h3 class="text-sm font-medium">Ask AIstylist</h3>
+                                <p class="text-xs text-muted mt-1">Get fashion advice from AI</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features -->
+                <div class="mb-8">
+                    <h2 class="text-lg font-light mb-4">Features</h2>
+                    <div class="space-y-4">
+                        <div class="bg-white rounded-2xl p-4 shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="cloud" class="w-5 h-5 text-blue-500"></i>
+                                <div>
+                                    <h3 class="font-medium">Weather Integration</h3>
+                                    <p class="text-sm text-muted">Get weather-appropriate outfit suggestions</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onclick="generateManualOutfit()">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="sparkles" class="w-5 h-5 text-purple-500"></i>
+                                <div class="flex-1">
+                                    <h3 class="font-medium">おすすめ画像を生成</h3>
+                                    <p class="text-sm text-muted">1日1枚まで追加生成可能</p>
+                                </div>
+                                <div id="generation-status" class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">
+                                    Available
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="message-circle" class="w-5 h-5 text-green-500"></i>
+                                <div>
+                                    <h3 class="font-medium">Chat with AI</h3>
+                                    <p class="text-sm text-muted">Upload images and get personalized advice</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA -->
+                <div class="text-center">
+                    <a href="/login" class="inline-block bg-accent hover:bg-accent-hover text-custom px-8 py-3 rounded-full font-medium transition-colors">
+                        Get Started with Google
+                    </a>
+                    <p class="text-sm text-muted mt-4">7-day free trial • $20/month after</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Tab -->
+        <div id="chat-tab" class="tab-content pb-20 hidden">
+            <div class="p-4 pt-12">
+                <div class="mb-8">
+                    <h1 class="text-2xl font-light tracking-wide">Chat with AIstylist</h1>
+                    <p class="text-sm text-muted">Get personalized fashion advice</p>
+                </div>
+
+                <!-- Upload Area -->
+                <div class="bg-white rounded-3xl shadow-sm p-6 mb-6">
+                    <div class="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center">
+                        <div class="w-12 h-12 rounded-full bg-card flex items-center justify-center mb-4">
+                            <i data-lucide="camera" class="w-6 h-6 text-muted"></i>
+                        </div>
+                        <p class="text-sm font-medium mb-1">Upload an outfit photo</p>
+                        <p class="text-xs text-muted mb-4 text-center">Take a photo or upload from your gallery</p>
+                        <input type="file" id="image-upload" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                        <label for="image-upload" class="bg-accent hover:bg-accent-hover text-custom px-4 py-2 rounded-full cursor-pointer">
+                            Choose Photo
+                        </label>
+                        <div id="uploaded-image" class="mt-4 hidden">
+                            <img id="image-preview" class="rounded-lg max-w-48 max-h-48 object-cover" alt="Uploaded image">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Messages -->
+                <div class="bg-white rounded-3xl shadow-sm p-4 mb-6">
+                    <div id="chat-messages" class="space-y-4 max-h-64 overflow-y-auto mb-4">
+                        <div class="bg-card rounded-2xl p-3 max-w-[80%]">
+                            <p class="text-sm">Hello! How can I help with your style today?</p>
+                            <p class="text-xs text-muted mt-1">AIstylist • <span id="current-time"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <input type="text" id="chat-input" placeholder="Ask anything about fashion..." 
+                               class="flex-1 rounded-full border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+                               onkeypress="handleKeyPress(event)">
+                        <button onclick="sendMessage()" class="bg-accent hover:bg-accent-hover text-custom px-4 py-2 rounded-full">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Suggested Questions -->
+                <div>
+                    <h3 class="text-sm font-medium mb-3">Suggested Questions</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setChatInput('What colors match with gray?')" 
+                                class="bg-card text-custom hover:bg-accent rounded-full px-3 py-1 text-sm">
+                            What colors match with gray?
+                        </button>
+                        <button onclick="setChatInput('How to style a white blouse?')" 
+                                class="bg-card text-custom hover:bg-accent rounded-full px-3 py-1 text-sm">
+                            How to style a white blouse?
+                        </button>
+                        <button onclick="setChatInput('Casual outfit ideas')" 
+                                class="bg-card text-custom hover:bg-accent rounded-full px-3 py-1 text-sm">
+                            Casual outfit ideas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Closet Tab -->
+        <div id="closet-tab" class="tab-content pb-20 hidden">
+            <div class="p-4 pt-12">
+                <div class="mb-6">
+                    <h1 class="text-2xl font-light tracking-wide">My Closet</h1>
+                    <p class="text-sm text-muted">All your saved items</p>
+                </div>
+
+                <!-- Search -->
+                <div class="relative mb-6">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted"></i>
+                    <input type="text" placeholder="Search your closet..." 
+                           class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-accent">
+                </div>
+
+                <!-- Categories -->
+                <div class="mb-6 overflow-x-auto">
+                    <div class="flex gap-2 min-w-max">
+                        <button class="bg-accent text-custom border-accent rounded-full px-4 py-1 text-sm">All</button>
+                        <button class="bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm">Tops</button>
+                        <button class="bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm">Bottoms</button>
+                        <button class="bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm">Dresses</button>
+                        <button class="bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm">Shoes</button>
+                        <button class="bg-transparent text-muted border border-gray-200 rounded-full px-4 py-1 text-sm">Accessories</button>
+                    </div>
+                </div>
+
+                <!-- Closet Grid -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <div class="h-32 bg-gray-100 flex items-center justify-center">
+                            <i data-lucide="shopping-bag" class="w-8 h-8 text-muted"></i>
+                        </div>
+                        <div class="p-2">
+                            <p class="text-xs font-medium truncate">White Blouse</p>
+                            <p class="text-xs text-muted">Tops</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <div class="h-32 bg-gray-100 flex items-center justify-center">
+                            <i data-lucide="shopping-bag" class="w-8 h-8 text-muted"></i>
+                        </div>
+                        <div class="p-2">
+                            <p class="text-xs font-medium truncate">Gray Pants</p>
+                            <p class="text-xs text-muted">Bottoms</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <div class="h-32 bg-gray-100 flex items-center justify-center">
+                            <i data-lucide="shopping-bag" class="w-8 h-8 text-muted"></i>
+                        </div>
+                        <div class="p-2">
+                            <p class="text-xs font-medium truncate">Pink Dress</p>
+                            <p class="text-xs text-muted">Dresses</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Item Button -->
+                <button class="fixed bottom-24 right-4 w-12 h-12 rounded-full bg-accent hover:bg-accent-hover text-custom text-xl">
+                    +
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Update current time
+        document.getElementById('current-time').textContent = new Date().toLocaleTimeString();
+
+        // Tab functionality
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('text-accent');
+                btn.classList.add('text-muted');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            // Add active class to selected button
+            event.target.closest('.tab-button').classList.add('text-accent');
+            event.target.closest('.tab-button').classList.remove('text-muted');
+        }
+
+        // Chat functionality
+        function setChatInput(text) {
+            document.getElementById('chat-input').value = text;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage(message, true);
+            input.value = '';
+            
+            // Simulate AI response
+            setTimeout(() => {
+                addMessage("I'd be happy to help you with that! Could you provide more details about what you're looking for?", false);
+            }, 1000);
+        }
+
+        function addMessage(text, isUser) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `rounded-2xl p-3 max-w-[80%] ${isUser ? 'bg-gray-200 ml-auto' : 'bg-card'}`;
+            
+            messageDiv.innerHTML = `
+                <p class="text-sm">${text}</p>
+                <p class="text-xs text-muted mt-1">${isUser ? 'You' : 'AIstylist'} • ${new Date().toLocaleTimeString()}</p>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('image-preview').src = e.target.result;
+                    document.getElementById('uploaded-image').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Load weather data
+        fetch('/api/weather')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('weather-temp').textContent = data.temperature + '°C';
+                document.getElementById('weather-condition').textContent = data.condition;
+                document.getElementById('weather-info').classList.remove('hidden');
+            })
+            .catch(error => console.error('Weather loading error:', error));
+
+        // Load user data if logged in
+        // This would be populated from the server session
+        const userData = {{ user | tojson if user else 'null' }};
+        if (userData) {
+            document.getElementById('user-name').textContent = userData.name || 'there';
+            document.getElementById('user-initial').textContent = (userData.name || 'U')[0].toUpperCase();
+        }
+
+        // Manual outfit generation function
+        function generateManualOutfit() {
+            const statusBadge = document.getElementById('generation-status');
+            
+            // Check if already used
+            if (statusBadge.textContent === 'Used Today') {
+                alert('You have already generated your daily bonus outfit. Come back tomorrow!');
+                return;
+            }
+            
+            // Update status to loading
+            statusBadge.textContent = 'Generating...';
+            statusBadge.className = 'text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600';
+            
+            // Call API
+            fetch('/api/generate-manual-outfit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusBadge.textContent = 'Used Today';
+                    statusBadge.className = 'text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600';
+                    alert('✨ ' + data.message + '\n\nCheck the Home tab to see your new outfit!');
+                    // Optionally reload the page to show the new outfit
+                    window.location.reload();
+                } else {
+                    statusBadge.textContent = 'Available';
+                    statusBadge.className = 'text-xs px-2 py-1 rounded-full bg-green-100 text-green-600';
+                    alert('❌ ' + (data.error || 'Failed to generate outfit'));
+                }
+            })
+            .catch(error => {
+                console.error('Generation error:', error);
+                statusBadge.textContent = 'Available';
+                statusBadge.className = 'text-xs px-2 py-1 rounded-full bg-green-100 text-green-600';
+                alert('❌ An error occurred. Please try again.');
+            });
+        }
+
+        // Time-based greeting function
+        function getGreeting() {
+            const now = new Date();
+            const hour = now.getHours();
+            
+            if (5 <= hour && hour < 12) {
+                return "Good morning";
+            } else if (12 <= hour && hour < 18) {
+                return "Good afternoon";
+            } else {
+                return "Good evening";
+            }
+        }
+
+        function updateGreeting() {
+            const greetingElement = document.getElementById('greeting');
+            if (greetingElement) {
+                greetingElement.textContent = getGreeting();
+            }
+        }
+
+        // Update greeting when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateGreeting();
+            
+            // Update every minute
+            setInterval(updateGreeting, 60000);
+        });
+    </script>
+</body>
+</html>

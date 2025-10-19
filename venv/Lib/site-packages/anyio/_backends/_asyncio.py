@@ -74,6 +74,7 @@ from .._core._exceptions import (
     BusyResourceError,
     ClosedResourceError,
     EndOfStream,
+    RunFinishedError,
     WouldBlock,
     iterate_exceptions,
 )
@@ -219,7 +220,7 @@ else:
                 if self._interrupt_count > 0:
                     uncancel = getattr(task, "uncancel", None)
                     if uncancel is not None and uncancel() == 0:
-                        raise KeyboardInterrupt()
+                        raise KeyboardInterrupt  # noqa: B904
                 raise  # CancelledError
             finally:
                 if (
@@ -378,7 +379,7 @@ def is_anyio_cancellation(exc: CancelledError) -> bool:
         if (
             exc.args
             and isinstance(exc.args[0], str)
-            and exc.args[0].startswith("Cancelled by cancel scope ")
+            and exc.args[0].startswith("Cancelled via cancel scope ")
         ):
             return True
 
@@ -401,6 +402,7 @@ class CancelScope(BaseCancelScope):
         self._parent_scope: CancelScope | None = None
         self._child_scopes: set[CancelScope] = set()
         self._cancel_called = False
+        self._cancel_reason: str | None = None
         self._cancelled_caught = False
         self._active = False
         self._timeout_handle: asyncio.TimerHandle | None = None
@@ -545,7 +547,7 @@ class CancelScope(BaseCancelScope):
         if self._deadline != math.inf:
             loop = get_running_loop()
             if loop.time() >= self._deadline:
-                self.cancel()
+                self.cancel("deadline exceeded")
             else:
                 self._timeout_handle = loop.call_at(self._deadline, self._timeout)
 
@@ -571,7 +573,7 @@ class CancelScope(BaseCancelScope):
             if task is not current and (task is self._host_task or _task_started(task)):
                 waiter = task._fut_waiter  # type: ignore[attr-defined]
                 if not isinstance(waiter, asyncio.Future) or not waiter.done():
-                    task.cancel(f"Cancelled by cancel scope {id(origin):x}")
+                    task.cancel(origin._cancel_reason)
                     if (
                         task is origin._host_task
                         and origin._pending_uncancellations is not None
@@ -614,13 +616,20 @@ class CancelScope(BaseCancelScope):
 
             scope = scope._parent_scope
 
-    def cancel(self) -> None:
+    def cancel(self, reason: str | None = None) -> None:
         if not self._cancel_called:
             if self._timeout_handle:
                 self._timeout_handle.cancel()
                 self._timeout_handle = None
 
             self._cancel_called = True
+            self._cancel_reason = f"Cancelled via cancel scope {id(self):x}"
+            if task := current_task():
+                self._cancel_reason += f" by {task}"
+
+            if reason:
+                self._cancel_reason += f"; reason: {reason}"
+
             if self._host_task is not None:
                 self._deliver_cancellation(self)
 
@@ -726,7 +735,7 @@ class TaskGroup(abc.TaskGroup):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ) -> bool | None:
+    ) -> bool:
         try:
             if exc_val is not None:
                 self.cancel_scope.cancel()
@@ -1304,8 +1313,8 @@ class SocketStream(abc.SocketStream):
             pass
 
     async def aclose(self) -> None:
+        self._closed = True
         if not self._transport.is_closing():
-            self._closed = True
             try:
                 self._transport.write_eof()
             except OSError:
@@ -1745,8 +1754,8 @@ class ConnectedUNIXDatagramSocket(_RawSocketMixin, abc.ConnectedUNIXDatagramSock
                     return
 
 
-_read_events: RunVar[dict[int, asyncio.Event]] = RunVar("read_events")
-_write_events: RunVar[dict[int, asyncio.Event]] = RunVar("write_events")
+_read_events: RunVar[dict[int, asyncio.Future[bool]]] = RunVar("read_events")
+_write_events: RunVar[dict[int, asyncio.Future[bool]]] = RunVar("write_events")
 
 
 #
@@ -1982,6 +1991,12 @@ class CapacityLimiter(BaseCapacityLimiter):
     def available_tokens(self) -> float:
         return self._total_tokens - len(self._borrowers)
 
+    def _notify_next_waiter(self) -> None:
+        """Notify the next task in line if this limiter has free capacity now."""
+        if self._wait_queue and len(self._borrowers) < self._total_tokens:
+            event = self._wait_queue.popitem(last=False)[1]
+            event.set()
+
     def acquire_nowait(self) -> None:
         self.acquire_on_behalf_of_nowait(current_task())
 
@@ -2010,6 +2025,9 @@ class CapacityLimiter(BaseCapacityLimiter):
                 await event.wait()
             except BaseException:
                 self._wait_queue.pop(borrower, None)
+                if event.is_set():
+                    self._notify_next_waiter()
+
                 raise
 
             self._borrowers.add(borrower)
@@ -2031,10 +2049,7 @@ class CapacityLimiter(BaseCapacityLimiter):
                 "this borrower isn't holding any of this CapacityLimiter's tokens"
             ) from None
 
-        # Notify the next task in line if this limiter has free capacity now
-        if self._wait_queue and len(self._borrowers) < self._total_tokens:
-            event = self._wait_queue.popitem(last=False)[1]
-            event.set()
+        self._notify_next_waiter()
 
     def statistics(self) -> CapacityLimiterStatistics:
         return CapacityLimiterStatistics(
@@ -2488,24 +2503,31 @@ class AsyncIOBackend(AsyncBackend):
         args: tuple[Unpack[PosArgsT]],
         token: object,
     ) -> T_Retval:
-        async def task_wrapper(scope: CancelScope) -> T_Retval:
+        async def task_wrapper() -> T_Retval:
             __tracebackhide__ = True
-            task = cast(asyncio.Task, current_task())
-            _task_states[task] = TaskState(None, scope)
-            scope._tasks.add(task)
+            if scope is not None:
+                task = cast(asyncio.Task, current_task())
+                _task_states[task] = TaskState(None, scope)
+                scope._tasks.add(task)
             try:
                 return await func(*args)
             except CancelledError as exc:
                 raise concurrent.futures.CancelledError(str(exc)) from None
             finally:
-                scope._tasks.discard(task)
+                if scope is not None:
+                    scope._tasks.discard(task)
 
-        loop = cast(AbstractEventLoop, token)
+        loop = cast(
+            "AbstractEventLoop", token or threadlocals.current_token.native_token
+        )
+        if loop.is_closed():
+            raise RunFinishedError
+
         context = copy_context()
         context.run(sniffio.current_async_library_cvar.set, "asyncio")
-        wrapper = task_wrapper(threadlocals.current_cancel_scope)
+        scope = getattr(threadlocals, "current_cancel_scope", None)
         f: concurrent.futures.Future[T_Retval] = context.run(
-            asyncio.run_coroutine_threadsafe, wrapper, loop
+            asyncio.run_coroutine_threadsafe, task_wrapper(), loop=loop
         )
         return f.result()
 
@@ -2526,8 +2548,13 @@ class AsyncIOBackend(AsyncBackend):
                 if not isinstance(exc, Exception):
                     raise
 
+        loop = cast(
+            "AbstractEventLoop", token or threadlocals.current_token.native_token
+        )
+        if loop.is_closed():
+            raise RunFinishedError
+
         f: concurrent.futures.Future[T_Retval] = Future()
-        loop = cast(AbstractEventLoop, token)
         loop.call_soon_threadsafe(wrapper)
         return f.result()
 
@@ -2701,73 +2728,197 @@ class AsyncIOBackend(AsyncBackend):
 
     @classmethod
     async def wait_readable(cls, obj: FileDescriptorLike) -> None:
-        await cls.checkpoint()
         try:
             read_events = _read_events.get()
         except LookupError:
             read_events = {}
             _read_events.set(read_events)
 
-        if not isinstance(obj, int):
-            obj = obj.fileno()
-
-        if read_events.get(obj):
+        fd = obj if isinstance(obj, int) else obj.fileno()
+        if read_events.get(fd):
             raise BusyResourceError("reading from")
 
         loop = get_running_loop()
-        event = asyncio.Event()
+        fut: asyncio.Future[bool] = loop.create_future()
+
+        def cb() -> None:
+            try:
+                del read_events[fd]
+            except KeyError:
+                pass
+            else:
+                remove_reader(fd)
+
+            try:
+                fut.set_result(True)
+            except asyncio.InvalidStateError:
+                pass
+
         try:
-            loop.add_reader(obj, event.set)
+            loop.add_reader(fd, cb)
         except NotImplementedError:
             from anyio._core._asyncio_selector_thread import get_selector
 
             selector = get_selector()
-            selector.add_reader(obj, event.set)
+            selector.add_reader(fd, cb)
             remove_reader = selector.remove_reader
         else:
             remove_reader = loop.remove_reader
 
-        read_events[obj] = event
+        read_events[fd] = fut
         try:
-            await event.wait()
+            success = await fut
         finally:
-            remove_reader(obj)
-            del read_events[obj]
+            try:
+                del read_events[fd]
+            except KeyError:
+                pass
+            else:
+                remove_reader(fd)
+
+        if not success:
+            raise ClosedResourceError
 
     @classmethod
     async def wait_writable(cls, obj: FileDescriptorLike) -> None:
-        await cls.checkpoint()
         try:
             write_events = _write_events.get()
         except LookupError:
             write_events = {}
             _write_events.set(write_events)
 
-        if not isinstance(obj, int):
-            obj = obj.fileno()
-
-        if write_events.get(obj):
+        fd = obj if isinstance(obj, int) else obj.fileno()
+        if write_events.get(fd):
             raise BusyResourceError("writing to")
 
         loop = get_running_loop()
-        event = asyncio.Event()
+        fut: asyncio.Future[bool] = loop.create_future()
+
+        def cb() -> None:
+            try:
+                del write_events[fd]
+            except KeyError:
+                pass
+            else:
+                remove_writer(fd)
+
+            try:
+                fut.set_result(True)
+            except asyncio.InvalidStateError:
+                pass
+
         try:
-            loop.add_writer(obj, event.set)
+            loop.add_writer(fd, cb)
         except NotImplementedError:
             from anyio._core._asyncio_selector_thread import get_selector
 
             selector = get_selector()
-            selector.add_writer(obj, event.set)
+            selector.add_writer(fd, cb)
             remove_writer = selector.remove_writer
         else:
             remove_writer = loop.remove_writer
 
-        write_events[obj] = event
+        write_events[fd] = fut
         try:
-            await event.wait()
+            success = await fut
         finally:
-            del write_events[obj]
-            remove_writer(obj)
+            try:
+                del write_events[fd]
+            except KeyError:
+                pass
+            else:
+                remove_writer(fd)
+
+        if not success:
+            raise ClosedResourceError
+
+    @classmethod
+    def notify_closing(cls, obj: FileDescriptorLike) -> None:
+        fd = obj if isinstance(obj, int) else obj.fileno()
+        loop = get_running_loop()
+
+        try:
+            write_events = _write_events.get()
+        except LookupError:
+            pass
+        else:
+            try:
+                fut = write_events.pop(fd)
+            except KeyError:
+                pass
+            else:
+                try:
+                    fut.set_result(False)
+                except asyncio.InvalidStateError:
+                    pass
+
+                try:
+                    loop.remove_writer(fd)
+                except NotImplementedError:
+                    from anyio._core._asyncio_selector_thread import get_selector
+
+                    get_selector().remove_writer(fd)
+
+        try:
+            read_events = _read_events.get()
+        except LookupError:
+            pass
+        else:
+            try:
+                fut = read_events.pop(fd)
+            except KeyError:
+                pass
+            else:
+                try:
+                    fut.set_result(False)
+                except asyncio.InvalidStateError:
+                    pass
+
+                try:
+                    loop.remove_reader(fd)
+                except NotImplementedError:
+                    from anyio._core._asyncio_selector_thread import get_selector
+
+                    get_selector().remove_reader(fd)
+
+    @classmethod
+    async def wrap_listener_socket(cls, sock: socket.socket) -> SocketListener:
+        return TCPSocketListener(sock)
+
+    @classmethod
+    async def wrap_stream_socket(cls, sock: socket.socket) -> SocketStream:
+        transport, protocol = await get_running_loop().create_connection(
+            StreamProtocol, sock=sock
+        )
+        return SocketStream(transport, protocol)
+
+    @classmethod
+    async def wrap_unix_stream_socket(cls, sock: socket.socket) -> UNIXSocketStream:
+        return UNIXSocketStream(sock)
+
+    @classmethod
+    async def wrap_udp_socket(cls, sock: socket.socket) -> UDPSocket:
+        transport, protocol = await get_running_loop().create_datagram_endpoint(
+            DatagramProtocol, sock=sock
+        )
+        return UDPSocket(transport, protocol)
+
+    @classmethod
+    async def wrap_connected_udp_socket(cls, sock: socket.socket) -> ConnectedUDPSocket:
+        transport, protocol = await get_running_loop().create_datagram_endpoint(
+            DatagramProtocol, sock=sock
+        )
+        return ConnectedUDPSocket(transport, protocol)
+
+    @classmethod
+    async def wrap_unix_datagram_socket(cls, sock: socket.socket) -> UNIXDatagramSocket:
+        return UNIXDatagramSocket(sock)
+
+    @classmethod
+    async def wrap_connected_unix_datagram_socket(
+        cls, sock: socket.socket
+    ) -> ConnectedUNIXDatagramSocket:
+        return ConnectedUNIXDatagramSocket(sock)
 
     @classmethod
     def current_default_thread_limiter(cls) -> CapacityLimiter:

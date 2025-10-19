@@ -21,18 +21,18 @@ def load_closet_txts(closet_dir):
             desc_lower = desc.lower()
             if any(word in desc_lower for word in ['dress']):
                 category = 'Dresses'
-            elif any(word in desc_lower for word in ['blouse', 'top', 'shirt', 't-shirt', 'sweater', 'hoodie']):
+            elif any(word in desc_lower for word in ['blouse', 'top', 'shirt', 't-shirt', 'sweater', 'hoodie', 'tank', 'crop', 'blazer', 'cardigan', 'pullover', 'polo', 'camisole', 'tunic']):
                 category = 'Tops'
-            elif any(word in desc_lower for word in ['pants', 'skirt', 'jeans', 'shorts', 'trousers']):
+            elif any(word in desc_lower for word in ['pants', 'skirt', 'jeans', 'shorts', 'trousers', 'leggings', 'capri', 'cargo', 'chinos', 'trousers']):
                 category = 'Bottoms'
-            elif any(word in desc_lower for word in ['shoes', 'sneaker', 'boot', 'sandals', 'loafer', 'heel']):
+            elif any(word in desc_lower for word in ['shoes', 'sneaker', 'boot', 'sandals', 'loafer', 'heel', 'sneakers', 'boots', 'flats', 'pumps', 'oxfords', 'mules', 'clogs', 'slippers']):
                 category = 'Shoes'
-            elif any(word in desc_lower for word in ['bag', 'handbag', 'backpack', 'purse', 'tote']):
-                category = 'Bags'
-            elif any(word in desc_lower for word in ['hat', 'cap', 'scarf', 'belt', 'glove', 'accessory']):
+            elif any(word in desc_lower for word in ['jacket', 'coat', 'blazer', 'cardigan', 'sweater', 'hoodie', 'vest', 'windbreaker', 'trench', 'parka', 'bomber', 'denim jacket', 'leather jacket']):
+                category = 'Outerwear'
+            elif any(word in desc_lower for word in ['bag', 'handbag', 'backpack', 'purse', 'tote', 'clutch', 'satchel', 'hat', 'cap', 'scarf', 'belt', 'glove', 'accessory', 'jewelry', 'watch', 'sunglasses', 'necklace', 'bracelet', 'earrings', 'ring']):
                 category = 'Accessories'
             else:
-                category = 'Other'
+                category = 'Accessories'  # デフォルトをAccessoriesに変更
         else:
             desc = "Description not available yet."
             category = "Pending"
@@ -129,37 +129,216 @@ def select_multiple_outfits(num=4, closet_dir="data/clothes/input", criteria=Non
     weather = criteria.get('weather') if criteria else None
     items = filter_by_weather(items, weather)
 
-    # Classify by category
-    dresses = [i for i in items if "dress" in i['desc'].lower()]
-    tops = [i for i in items if any(word in i['desc'].lower() for word in ["blouse", "top", "shirt"])]
-    bottoms = [i for i in items if any(word in i['desc'].lower() for word in ["pants", "skirt"])]
+    # Group items by category for balanced selection
+    items_by_category = {}
+    for item in items:
+        category = item['category']
+        if category not in items_by_category:
+            items_by_category[category] = []
+        items_by_category[category].append(item)
 
     outfits = []
     used = set()
+    
     # Try to generate as many unique outfits as possible
     for _ in range(num):
-        # Priority: dress > top+bottom
-        outfit = []
-        # Try to pick an unused dress
-        available_dresses = [d for d in dresses if d['file'] not in used]
-        if available_dresses:
-            d = random.choice(available_dresses)
-            outfit = [d['file']]
-            used.add(d['file'])
-        elif tops and bottoms:
-            available_tops = [t for t in tops if t['file'] not in used]
-            available_bottoms = [b for b in bottoms if b['file'] not in used]
-            if available_tops and available_bottoms:
-                t = random.choice(available_tops)
-                b = random.choice(available_bottoms)
-                outfit = [t['file'], b['file']]
-                used.add(t['file'])
-                used.add(b['file'])
+        outfit = select_balanced_outfit(items_by_category, used)
         if outfit:
             outfits.append(outfit)
+            used.update(outfit)
         else:
-            break  # No more unique outfits possible
+            break  # No more unique combinations possible
+    
     return outfits
+
+def select_balanced_outfit(items_by_category, used_items):
+    """Select an outfit with smart color coordination and layering."""
+    outfit = []
+    
+    # Priority order for categories
+    category_priority = ['Dresses', 'Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories']
+    
+    # Try to select from each category with smart coordination
+    for category in category_priority:
+        if category in items_by_category:
+            category_items = [item for item in items_by_category[category] if item['file'] not in used_items]
+            if category_items:
+                # For dresses, we might want to use only dress (not top+bottom)
+                if category == 'Dresses' and len(outfit) == 0:
+                    selected_item = smart_select_item(category_items, outfit, category)
+                    if selected_item:
+                        outfit.append(selected_item['file'])
+                    break
+                elif category != 'Dresses':
+                    selected_item = smart_select_item(category_items, outfit, category)
+                    if selected_item:
+                        outfit.append(selected_item['file'])
+    
+    # Add layering items if appropriate
+    outfit = add_layering_items(outfit, items_by_category, used_items)
+    
+    # If we don't have enough items, add more from any category
+    all_available = []
+    for category_items in items_by_category.values():
+        for item in category_items:
+            if item['file'] not in used_items and item['file'] not in outfit:
+                all_available.append(item)
+    
+    while len(outfit) < 4 and len(outfit) < len(all_available):
+        if all_available:
+            selected_item = smart_select_item(all_available, outfit, 'Any')
+            if selected_item:
+                outfit.append(selected_item['file'])
+                all_available.remove(selected_item)
+            else:
+                break
+        else:
+            break
+    
+    return outfit
+
+def smart_select_item(candidates, current_outfit, category):
+    """Select an item that coordinates well with the current outfit."""
+    if not candidates:
+        return None
+    
+    # If no items in outfit yet, select randomly
+    if not current_outfit:
+        return random.choice(candidates)
+    
+    # Score each candidate based on coordination
+    scored_candidates = []
+    for item in candidates:
+        score = calculate_coordination_score(item, current_outfit, category)
+        scored_candidates.append((item, score))
+    
+    # Sort by score (higher is better) and add some randomness
+    scored_candidates.sort(key=lambda x: x[1], reverse=True)
+    
+    # Select from top 3 candidates with weighted randomness
+    top_candidates = scored_candidates[:min(3, len(scored_candidates))]
+    weights = [max(0.1, score) for _, score in top_candidates]
+    
+    if weights and sum(weights) > 0:
+        selected = random.choices([item for item, _ in top_candidates], weights=weights)[0]
+        return selected
+    else:
+        return random.choice(candidates)
+
+def calculate_coordination_score(item, current_outfit, category):
+    """Calculate how well an item coordinates with the current outfit."""
+    score = 0
+    
+    # Extract color information from item description
+    item_colors = extract_colors(item['desc'])
+    
+    # Check color coordination with existing items
+    for outfit_item in current_outfit:
+        # This is a simplified check - in a real system, you'd parse the actual item data
+        outfit_colors = extract_colors_from_filename(outfit_item)  # Simplified
+        color_score = calculate_color_harmony(item_colors, outfit_colors)
+        score += color_score
+    
+    # Category-specific scoring
+    if category == 'Tops':
+        # Prefer versatile tops that can be layered
+        if any(word in item['desc'].lower() for word in ['basic', 'solid', 'neutral', 'white', 'black', 'gray']):
+            score += 2
+        # Prefer layering-friendly items
+        if any(word in item['desc'].lower() for word in ['tank', 'camisole', 't-shirt', 'blouse']):
+            score += 1
+    elif category == 'Outerwear':
+        # Prefer outerwear that complements the base outfit
+        if any(word in item['desc'].lower() for word in ['blazer', 'cardigan', 'jacket']):
+            score += 1
+    elif category == 'Accessories':
+        # Prefer accessories that add interest without clashing
+        score += 0.5  # Neutral score for accessories
+    
+    return score
+
+def extract_colors(description):
+    """Extract color information from item description."""
+    colors = []
+    color_keywords = {
+        'black': ['black', 'dark', 'charcoal', 'ebony'],
+        'white': ['white', 'cream', 'ivory', 'off-white'],
+        'blue': ['blue', 'navy', 'royal blue', 'sky blue'],
+        'red': ['red', 'crimson', 'burgundy', 'maroon'],
+        'green': ['green', 'emerald', 'forest green', 'mint'],
+        'yellow': ['yellow', 'gold', 'mustard', 'lemon'],
+        'pink': ['pink', 'rose', 'magenta', 'fuchsia'],
+        'purple': ['purple', 'violet', 'lavender', 'plum'],
+        'brown': ['brown', 'tan', 'beige', 'khaki', 'camel'],
+        'gray': ['gray', 'grey', 'silver', 'slate']
+    }
+    
+    desc_lower = description.lower()
+    for color, keywords in color_keywords.items():
+        if any(keyword in desc_lower for keyword in keywords):
+            colors.append(color)
+    
+    return colors
+
+def extract_colors_from_filename(filename):
+    """Simplified color extraction from filename (placeholder)."""
+    # In a real implementation, you'd parse the actual item data
+    return []
+
+def calculate_color_harmony(colors1, colors2):
+    """Calculate color harmony score between two sets of colors."""
+    if not colors1 or not colors2:
+        return 0
+    
+    # Basic color harmony rules
+    harmony_rules = {
+        'black': ['white', 'gray', 'red', 'blue', 'green', 'yellow', 'pink', 'purple'],
+        'white': ['black', 'gray', 'blue', 'red', 'green', 'yellow', 'pink', 'purple'],
+        'gray': ['black', 'white', 'blue', 'red', 'green', 'yellow', 'pink', 'purple'],
+        'blue': ['white', 'gray', 'black', 'yellow', 'pink', 'green'],
+        'red': ['white', 'black', 'gray', 'blue', 'green'],
+        'green': ['white', 'black', 'gray', 'blue', 'red', 'yellow'],
+        'yellow': ['black', 'gray', 'blue', 'green', 'purple'],
+        'pink': ['white', 'gray', 'blue', 'green', 'purple'],
+        'purple': ['white', 'gray', 'yellow', 'pink', 'green']
+    }
+    
+    score = 0
+    for color1 in colors1:
+        for color2 in colors2:
+            if color1 == color2:
+                score += 3  # Same color
+            elif color2 in harmony_rules.get(color1, []):
+                score += 2  # Harmonious colors
+            else:
+                score += 0.5  # Neutral
+    
+    return score
+
+def add_layering_items(outfit, items_by_category, used_items):
+    """Add layering items like shirts under sweaters, tank tops under blouses."""
+    layered_outfit = outfit.copy()
+    
+    # Check if we have a sweater or hoodie that could be layered
+    for item_file in outfit:
+        # This is simplified - in reality you'd check the actual item data
+        if any(word in item_file.lower() for word in ['sweater', 'hoodie', 'cardigan']):
+            # Look for a suitable base layer
+            base_layer_candidates = []
+            if 'Tops' in items_by_category:
+                for item in items_by_category['Tops']:
+                    if item['file'] not in used_items and item['file'] not in outfit:
+                        if any(word in item['desc'].lower() for word in ['tank', 'camisole', 't-shirt', 'blouse']):
+                            base_layer_candidates.append(item)
+            
+            if base_layer_candidates:
+                # Select a base layer that coordinates well
+                selected_base = smart_select_item(base_layer_candidates, layered_outfit, 'Tops')
+                if selected_base:
+                    layered_outfit.insert(0, selected_base['file'])  # Add as base layer
+                    break
+    
+    return layered_outfit
 
 if __name__ == "__main__":
     # Example usage with different weather conditions
