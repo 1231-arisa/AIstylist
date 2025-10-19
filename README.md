@@ -1,6 +1,6 @@
 # AIstylist - AI-Powered Fashion Coordination
 
-AIstylist is an intelligent fashion assistant that automatically generates personalized outfit recommendations using AI. It leverages OpenAI's GPT-4o and DALL-E to analyze your clothing and create stylish outfit combinations based on weather, occasion, and personal style.
+AIstylist is an intelligent fashion assistant that automatically generates personalized outfit recommendations using AI. It leverages OpenAI's GPT-4o and gpt-image-1 to analyze your clothing and create stylish outfit combinations based on weather, occasion, and personal style.
 
 ## ✨ Key Features
 
@@ -133,7 +133,7 @@ AIstylist/
 ## 🛠️ Technologies Used
 
 - **Backend**: Python, Flask
-- **AI/ML**: OpenAI GPT-4o, DALL-E
+- **AI/ML**: OpenAI GPT-4o, gpt-image-1
 - **Database**: SQLite
 - **Frontend**: HTML5, Tailwind CSS, JavaScript
 - **Payments**: Stripe
@@ -206,7 +206,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- OpenAI for GPT-4o and DALL-E APIs
+- OpenAI for GPT-4o and gpt-image-1 APIs
 - Stripe for payment processing
 - OpenWeatherMap for weather data
 - The open-source community for various libraries
