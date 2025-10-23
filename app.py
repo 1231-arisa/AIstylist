@@ -6,7 +6,7 @@ Integrated frontend and backend web application
 import os
 import sys
 import base64
-import datetime
+from datetime import datetime
 import glob
 import requests
 import hashlib
@@ -228,7 +228,6 @@ def get_weather_icon(weather_condition):
 
 def get_current_date():
     """Get current date in a user-friendly format"""
-    from datetime import datetime
     now = datetime.now()
     
     # Format: "Oct 16" (without year)
@@ -396,7 +395,7 @@ def create_app():
     def get_vancouver_time():
         """Get current time in Vancouver timezone"""
         vancouver_tz = pytz.timezone('America/Vancouver')
-        return datetime.datetime.now(vancouver_tz)
+        return datetime.now(vancouver_tz)
     
     def should_generate_daily_outfits():
         """Check if it's time to generate daily outfits (after 5 AM Vancouver time)"""
@@ -509,10 +508,10 @@ def create_app():
         today_str = vancouver_time.strftime("%Y%m%d")
         output_dir = app.config['OUTPUT_FOLDER']
 
-        # 1. Get today's daily outfit images
+        # 1. Get today's outfit images (both daily_outfit and bonus_outfit)
         today_files = sorted([
             f for f in os.listdir(output_dir)
-            if "daily_outfit" in f and today_str in f and f.endswith(".png")
+            if (("daily_outfit" in f or "bonus_outfit" in f) and today_str in f and f.endswith(".png"))
         ])
 
         # 2. If none, get up to 4 most recent .png images from output/
@@ -579,7 +578,7 @@ def create_app():
 
         try:
             outfit_files_list = select_multiple_outfits(num=1, closet_dir=closet_dir, criteria=criteria)
-            
+
             if not outfit_files_list or len(outfit_files_list) == 0:
                 print("No outfits selected")
                 return None
@@ -1115,43 +1114,45 @@ def create_app():
                     
                     # Create URL for accessing the image
                     image_url = f"/data/clothes/input/{unique_filename}"
+                except Exception as e:
+                    print(f"Image processing failed: {e}")
+                    return jsonify({'error': 'Image processing failed'}), 500
 
-                    # Analyze the clothing item
-                    api_key = os.getenv("OPENAI_API_KEY")
-
-                    clothing_info = {}
+                # Analyze the clothing item
+                api_key = os.getenv("OPENAI_API_KEY")
+                clothing_info = {}
+                
+                try:
+                    analysis_text = analyze_image(upload_path)
+                    print(f"Chat upload analysis result: {analysis_text}")
                     
-                    try:
-                        analysis_text = analyze_image(upload_path)
-                        print(f"Chat upload analysis result: {analysis_text}")
-                        
-                        # Extract item info from analysis text
-                        item_info = extract_item_info(analysis_text)
-                        
-                        clothing_info = {
-                            "item_name": item_info.get("item_name", "Chat Upload"),
-                            "category": item_info.get("category", "Clothing"),
-                            "color": item_info.get("color", "Unknown"),
-                            "style": item_info.get("style", "Unknown"),
-                            "description": analysis_text,
-                            "image_url": image_url
-                        }
-                        
-                        # Save analysis text to file
-                        txt_filename = unique_filename.replace('.jpg', '.txt')
-                        txt_path = os.path.join(app.config['UPLOAD_FOLDER'], txt_filename)
-                        with open(txt_path, 'w', encoding='utf-8') as f:
-                            f.write(analysis_text)
-                        print(f"✅ Analysis text saved to: {txt_filename}")
-                        
-                    except Exception as e:
-                        print(f"Analysis failed: {e}")
-                        clothing_info = {
-                            "item_name": "Chat Upload",
-                            "category": "Clothing",
-                            "description": "Item uploaded from chat",
-                            "image_url": image_url
-                        }
+                    # Extract item info from analysis text
+                    item_info = extract_item_info(analysis_text)
+                    
+                    clothing_info = {
+                        "item_name": item_info.get("item_name", "Chat Upload"),
+                        "category": item_info.get("category", "Clothing"),
+                        "color": item_info.get("color", "Unknown"),
+                        "style": item_info.get("style", "Unknown"),
+                        "description": analysis_text,
+                        "image_url": image_url
+                    }
+                    
+                    # Save analysis text to file
+                    txt_filename = unique_filename.replace('.jpg', '.txt')
+                    txt_path = os.path.join(app.config['UPLOAD_FOLDER'], txt_filename)
+                    with open(txt_path, 'w', encoding='utf-8') as f:
+                        f.write(analysis_text)
+                    print(f"✅ Analysis text saved to: {txt_filename}")
+                    
+                except Exception as e:
+                    print(f"Analysis failed: {e}")
+                    clothing_info = {
+                        "item_name": "Chat Upload",
+                        "category": "Clothing",
+                        "description": "Item uploaded from chat",
+                        "image_url": image_url
+                    }
                     
                     # Save to database
                     user_id = session.get("user_id", 1)
@@ -1497,7 +1498,7 @@ Remember: Your goal is to help users look their best while building their confid
                         continue
             except Exception as dup_err:
                 print(f"Duplicate check error: {dup_err}")
-
+            
             try:
                 # Try to analyze the image using existing analyze_image function
                 try:
@@ -1505,24 +1506,30 @@ Remember: Your goal is to help users look their best while building their confid
                     
                     # Extract clothing information using improved function
                     if isinstance(analysis_result, str):
-                        item_name, category = extract_item_info(analysis_result)
+                        item_info = extract_item_info(analysis_result)
                         clothing_info = {
-                            "item_name": item_name,
-                            "category": category,
-                            "color": "Unknown",
-                            "style": "Unknown",
+                            "item_name": item_info.get("item_name", filename.split('.')[0]),
+                            "category": item_info.get("category", "Clothing"),
+                            "color": item_info.get("color", "Unknown"),
+                            "style": item_info.get("style", "Unknown"),
                             "description": analysis_result,
                             "image_url": image_url
                         }
                     else:
                         clothing_info = {
-                            "item_name": analysis_result.get("item_name", filename.split('.')[0]),
-                            "category": analysis_result.get("category", "Clothing"),
-                            "color": analysis_result.get("color", "Unknown"),
-                            "style": analysis_result.get("style", "Unknown"),
-                            "description": analysis_result.get("description", "Clothing item"),
-                            "image_url": image_url
-                        }
+                        "item_name": analysis_result.get("item_name", filename.split('.')[0]),
+                        "category": analysis_result.get("category", "Clothing"),
+                        "color": analysis_result.get("color", "Unknown"),
+                        "style": analysis_result.get("style", "Unknown"),
+                        "description": analysis_result.get("description", "Clothing item"),
+                        "image_url": image_url
+                    }
+                    
+                    # Save analysis text to file
+                    txt_filename = unique_filename.replace('.jpg', '.txt').replace('.jpeg', '.txt').replace('.png', '.txt')
+                    txt_path = os.path.join(app.config['UPLOAD_FOLDER'], txt_filename)
+                    with open(txt_path, 'w', encoding='utf-8') as f:
+                        f.write(analysis_result)
                     
                     # Save to database if user is logged in
                     user_id = session.get("user_id", 1)  # Default to user_id=1 for now
@@ -1647,6 +1654,41 @@ Remember: Your goal is to help users look their best while building their confid
                 "success": False,
                 "error": f"Failed to load collections: {str(e)}"
             }), 500
+
+    @app.route('/api/save-outfit', methods=['POST'])
+    def save_outfit():
+        """Save current outfit to collections"""
+        try:
+            data = request.get_json()
+            user_id = session.get('user_id', 1)
+            
+            # Get current outfit data
+            outfit_name = data.get('name', f"Saved Outfit {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+            outfit_image_url = data.get('image_url')
+            weather_condition = data.get('weather', 'moderate')
+            occasion = data.get('occasion', 'casual')
+            
+            if not outfit_image_url:
+                return jsonify({'error': 'No outfit image provided'}), 400
+            
+            # Save to collections
+            from database import save_collection
+            collection_id = save_collection(
+                user_id=user_id,
+                collection_name=outfit_name,
+                collection_type="manual_save",
+                avatar_image_url=outfit_image_url,
+                outfit_description=f"Manually saved outfit for {weather_condition} weather",
+                tags=f"manual,{weather_condition},{occasion}"
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Outfit saved successfully',
+                'collection_id': collection_id
+            })
+        except Exception as e:
+            return jsonify({'error': f'Failed to save outfit: {str(e)}'}), 500
 
     @app.route("/api/save-collection", methods=["POST"])
     def save_collection():
@@ -1834,7 +1876,42 @@ Remember: Your goal is to help users look their best while building their confid
             from database import get_user_collections
             collections = get_user_collections(user_id)
             
-            # Generate outfit using existing logic
+            # Check if we can reuse an existing saved outfit first
+            existing_collections = collections
+            
+            # Look for similar weather/occasion outfits
+            weather_condition = weather_info.condition if weather_info else 'moderate'
+            similar_outfits = [
+                col for col in existing_collections 
+                if col.get('collection_type') == 'daily_outfit' and 
+                weather_condition.lower() in col.get('tags', '').lower()
+            ]
+            
+            if similar_outfits:
+                # Reuse existing outfit
+                reused_outfit = similar_outfits[0]
+                print(f"Reusing existing outfit: {reused_outfit['collection_name']}")
+                return jsonify({
+                    "success": True,
+                    "message": "Outfit generated successfully (reused from saved collection)",
+                    "avatar_image_url": reused_outfit['avatar_image_url'],
+                    "reused": True
+                })
+        except Exception as e:
+            print(f"Error checking existing collections: {e}")
+        
+        # If no suitable existing outfit found, generate new one
+        try:
+            from ai_style_agent import select_multiple_outfits_ai, fallback_to_original_selection
+            api_key = os.getenv("OPENAI_API_KEY")
+            outfits = select_multiple_outfits_ai(num=1, closet_dir=app.config['UPLOAD_FOLDER'], weather=weather_info.condition if weather_info else None, api_key=api_key)
+            
+            # If AI selection fails, use fallback
+            if not outfits:
+                print("AI selection failed, using fallback method")
+                outfits = fallback_to_original_selection(num=1, closet_dir=app.config['UPLOAD_FOLDER'], weather=weather_info.condition if weather_info else None)
+        except Exception as e:
+            print(f"AI outfit selection error: {e}, using fallback method")
             from style_agent import select_multiple_outfits
             outfits = select_multiple_outfits(num=1, closet_dir=app.config['UPLOAD_FOLDER'])
             
@@ -1879,15 +1956,97 @@ Remember: Your goal is to help users look their best while building their confid
                     "avatar_image_url": similar_collection['avatar_image_url']
                 })
             else:
-                # Generate new outfit
+                # Generate new outfit with image
                 from database import save_outfit
+                from generate_visualisation import generate_image
                 import json
                 
-                outfit_data = {
-                    "outfit_items": outfits[0],
-                    "generated_at": datetime.now().isoformat(),
-                    "type": "manual_generation"
-                }
+                # Generate outfit image
+                try:
+                    vancouver_time = get_vancouver_time()
+                    timestamp = vancouver_time.strftime("%Y%m%d_%H%M%S")
+                    output_filename = f"bonus_outfit_{timestamp}.png"
+                    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+                    
+                    # Load avatar description
+                    avatar_path = os.path.join(os.path.dirname(__file__), 'data', 'avatar.txt')
+                    
+                    # Load clothing descriptions for selected outfit
+                    clothes_paths = []
+                    for item_filename in outfits[0]:
+                        # Find corresponding .txt file
+                        txt_filename = item_filename.replace('.jpg', '.txt').replace('.jpeg', '.txt').replace('.png', '.txt')
+                        txt_path = os.path.join(app.config['UPLOAD_FOLDER'], txt_filename)
+                        if os.path.exists(txt_path):
+                            clothes_paths.append(txt_path)
+                        else:
+                            print(f"Warning: Description file not found for {item_filename}")
+                    
+                    if not clothes_paths:
+                        return jsonify({
+                            "success": False,
+                            "error": "No clothing descriptions found for selected outfit"
+                        }), 400
+                    
+                    # Load texts and create combined prompt
+                    from generate_visualisation import load_texts, sanitize_prompt
+                    texts = load_texts([avatar_path] + clothes_paths)
+                    raw_prompt = "\n".join(texts)
+                    prompt = sanitize_prompt(raw_prompt)
+                    
+                    print(f"Generated prompt: {prompt[:200]}...")
+                    
+                    # Generate the image
+                    api_key = os.getenv("OPENAI_API_KEY")
+                    image_bytes = generate_image(
+                        prompt=prompt,
+                        api_key=api_key
+                    )
+                    
+                    # Save the image to file
+                    with open(output_path, "wb") as f:
+                        f.write(image_bytes)
+                    
+                    image_url = f"/output/{output_filename}"
+                    
+                    # Automatically save to collections (View Saved Outfits)
+                    try:
+                        from database import save_collection
+                        user_id = session.get('user_id', 1)
+                        
+                        # Create outfit description
+                        outfit_description = f"Weather-appropriate outfit for {weather or 'moderate'} weather"
+                        tags = f"daily,{weather or 'moderate'},{occasion or 'casual'}"
+                        
+                        # Save to collections
+                        collection_id = save_collection(
+                            user_id=user_id,
+                            collection_name=f"Daily Outfit {datetime.now().strftime('%Y-%m-%d')}",
+                            collection_type="daily_outfit",
+                            avatar_image_url=image_url,
+                            outfit_description=outfit_description,
+                            tags=tags
+                        )
+                        print(f"Automatically saved outfit to collections: {collection_id}")
+                    except Exception as e:
+                        print(f"Failed to auto-save outfit to collections: {e}")
+                    
+                    outfit_data = {
+                        "outfit_items": outfits[0],
+                        "generated_at": datetime.now().isoformat(),
+                        "type": "manual_generation",
+                        "avatar_image_url": f"/output/{output_filename}"
+                    }
+                    
+                except Exception as e:
+                    print(f"Image generation failed: {e}")
+                    # Fallback without image
+                    outfit_data = {
+                        "outfit_items": outfits[0],
+                        "generated_at": datetime.now().isoformat(),
+                        "type": "manual_generation"
+                    }
+                    image_url = None
                 
                 outfit_id = save_outfit(
                     user_id=user_id,
@@ -1901,7 +2060,8 @@ Remember: Your goal is to help users look their best while building their confid
                     "success": True,
                     "message": f"✨ Your bonus outfit has been generated! Check your home screen.",
                     "outfit_id": outfit_id,
-                    "reused": False
+                    "reused": False,
+                    "avatar_image_url": image_url
                 })
             
         except Exception as e:

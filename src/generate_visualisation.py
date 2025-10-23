@@ -19,16 +19,13 @@ def load_texts(paths):
     return texts
 
 def generate_image(prompt, api_key):
-    """Generates an image using OpenAI's DALL-E-3 model."""
-    print("Generating image with DALL-E-3...")
+    """Generates an image using OpenAI's gpt-image-1 model as requested."""
+    print("Generating image with gpt-image-1...")
     client = OpenAI(api_key=api_key)
     try:
         response = client.images.generate(
-            model="dall-e-3",
-            prompt=prompt,
-            size="1024x1024",
-            quality="standard",
-            n=1
+            model="gpt-image-1",
+            prompt=prompt
         )
         print("API response:", response)
         if not response or not hasattr(response, "data") or not response.data:
@@ -48,8 +45,7 @@ def generate_image(prompt, api_key):
             sys.exit(1)
     except Exception as e:
         print(f"Error generating image: {e}")
-        # Return None instead of exiting to allow graceful fallback
-        return None
+        sys.exit(1)
 
 def sanitize_prompt(prompt):
     """Sanitize the prompt to avoid content moderation issues."""

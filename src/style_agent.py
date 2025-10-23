@@ -90,7 +90,7 @@ def select_outfit(criteria, closet_dir="data/clothes/input"):
     items = load_closet_txts(closet_dir)
 
     # Filter by weather
-    weather = criteria.get('weather') if criteria else None
+    weather = criteria.get('weather') if criteria and isinstance(criteria, dict) else None
     items = filter_by_weather(items, weather)
 
     print(f"Weather condition: {weather}")
@@ -126,7 +126,7 @@ def select_multiple_outfits(num=4, closet_dir="data/clothes/input", criteria=Non
     """
     items = load_closet_txts(closet_dir)
     # Filter by weather if criteria is provided
-    weather = criteria.get('weather') if criteria else None
+    weather = criteria.get('weather') if criteria and isinstance(criteria, dict) else None
     items = filter_by_weather(items, weather)
 
     # Group items by category for balanced selection
@@ -174,8 +174,8 @@ def select_balanced_outfit(items_by_category, used_items):
                     if selected_item:
                         outfit.append(selected_item['file'])
     
-    # Add layering items if appropriate
-    outfit = add_layering_items(outfit, items_by_category, used_items)
+    # Add layering items if appropriate (only if it enhances the outfit)
+    outfit = add_layering_items(outfit, items_by_category, used_items, weather=criteria.get('weather') if criteria and isinstance(criteria, dict) else None)
     
     # If we don't have enough items, add more from any category
     all_available = []
@@ -315,21 +315,36 @@ def calculate_color_harmony(colors1, colors2):
     
     return score
 
-def add_layering_items(outfit, items_by_category, used_items):
-    """Add layering items like shirts under sweaters, tank tops under blouses."""
+def add_layering_items(outfit, items_by_category, used_items, weather=None):
+    """Add layering items only if it enhances the outfit and is weather-appropriate."""
     layered_outfit = outfit.copy()
     
-    # Check if we have a sweater or hoodie that could be layered
+    # Only consider layering if weather is cool or if it would enhance style
+    should_consider_layering = (
+        weather and weather.lower() in ['cold', 'cool', 'chilly'] or
+        any(word in ' '.join(outfit).lower() for word in ['sweater', 'hoodie', 'cardigan', 'blazer'])
+    )
+    
+    if not should_consider_layering:
+        return layered_outfit
+    
+    # Check if we have items that would benefit from layering
     for item_file in outfit:
-        # This is simplified - in reality you'd check the actual item data
-        if any(word in item_file.lower() for word in ['sweater', 'hoodie', 'cardigan']):
+        item_desc = get_item_description(item_file, items_by_category)
+        if not item_desc:
+            continue
+            
+        # Look for layering opportunities
+        if any(word in item_desc.lower() for word in ['sweater', 'hoodie', 'cardigan', 'blazer']):
             # Look for a suitable base layer
             base_layer_candidates = []
             if 'Tops' in items_by_category:
                 for item in items_by_category['Tops']:
                     if item['file'] not in used_items and item['file'] not in outfit:
-                        if any(word in item['desc'].lower() for word in ['tank', 'camisole', 't-shirt', 'blouse']):
-                            base_layer_candidates.append(item)
+                        if any(word in item['desc'].lower() for word in ['tank', 'camisole', 't-shirt', 'blouse', 'shirt']):
+                            # Check if colors would coordinate well
+                            if would_coordinate_well(item, item_file, items_by_category):
+                                base_layer_candidates.append(item)
             
             if base_layer_candidates:
                 # Select a base layer that coordinates well
@@ -339,6 +354,43 @@ def add_layering_items(outfit, items_by_category, used_items):
                     break
     
     return layered_outfit
+
+def get_item_description(item_file, items_by_category):
+    """Get description for an item file."""
+    for category_items in items_by_category.values():
+        for item in category_items:
+            if item['file'] == item_file:
+                return item['desc']
+    return ""
+
+def would_coordinate_well(base_item, outer_item, items_by_category):
+    """Check if base and outer items would coordinate well."""
+    # Simple color coordination check
+    base_colors = extract_colors(base_item['desc'])
+    outer_desc = get_item_description(outer_item, items_by_category)
+    outer_colors = extract_colors(outer_desc) if outer_desc else []
+    
+    # Basic coordination rules
+    if not base_colors or not outer_colors:
+        return True  # If we can't determine colors, allow it
+    
+    # Check for complementary or neutral combinations
+    neutral_colors = {'black', 'white', 'gray', 'beige', 'navy'}
+    if any(color in neutral_colors for color in base_colors) or any(color in neutral_colors for color in outer_colors):
+        return True
+    
+    # Check for complementary colors
+    complementary_pairs = [
+        ('blue', 'orange'), ('red', 'green'), ('yellow', 'purple'),
+        ('pink', 'mint'), ('navy', 'coral')
+    ]
+    
+    for base_color in base_colors:
+        for outer_color in outer_colors:
+            if (base_color, outer_color) in complementary_pairs or (outer_color, base_color) in complementary_pairs:
+                return True
+    
+    return False
 
 if __name__ == "__main__":
     # Example usage with different weather conditions
