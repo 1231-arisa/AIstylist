@@ -1876,13 +1876,13 @@ Remember: Your goal is to help users look their best while building their confid
             from database import get_user_collections
             collections = get_user_collections(user_id)
             
-            # Check if we can reuse an existing saved outfit first
-            existing_collections = collections
+            # Get weather info
+            weather_info = get_weather_data('Vancouver')
+            weather_condition = weather_info.get('condition', 'moderate') if weather_info else 'moderate'
             
             # Look for similar weather/occasion outfits
-            weather_condition = weather_info.condition if weather_info else 'moderate'
             similar_outfits = [
-                col for col in existing_collections 
+                col for col in collections 
                 if col.get('collection_type') == 'daily_outfit' and 
                 weather_condition.lower() in col.get('tags', '').lower()
             ]
@@ -1897,23 +1897,12 @@ Remember: Your goal is to help users look their best while building their confid
                     "avatar_image_url": reused_outfit['avatar_image_url'],
                     "reused": True
                 })
-        except Exception as e:
-            print(f"Error checking existing collections: {e}")
-        
-        # If no suitable existing outfit found, generate new one
-        try:
-            from ai_style_agent import select_multiple_outfits_ai, fallback_to_original_selection
-            api_key = os.getenv("OPENAI_API_KEY")
-            outfits = select_multiple_outfits_ai(num=1, closet_dir=app.config['UPLOAD_FOLDER'], weather=weather_info.condition if weather_info else None, api_key=api_key)
             
-            # If AI selection fails, use fallback
-            if not outfits:
-                print("AI selection failed, using fallback method")
-                outfits = fallback_to_original_selection(num=1, closet_dir=app.config['UPLOAD_FOLDER'], weather=weather_info.condition if weather_info else None)
-        except Exception as e:
-            print(f"AI outfit selection error: {e}, using fallback method")
+            # If no suitable existing outfit found, generate new one
+            # Use the standard style_agent which is simpler and proven
             from style_agent import select_multiple_outfits
-            outfits = select_multiple_outfits(num=1, closet_dir=app.config['UPLOAD_FOLDER'])
+            criteria = {'weather': weather_condition} if weather_condition else None
+            outfits = select_multiple_outfits(num=1, closet_dir=app.config['UPLOAD_FOLDER'], criteria=criteria)
             
             if not outfits:
                 return jsonify({
@@ -2063,8 +2052,11 @@ Remember: Your goal is to help users look their best while building their confid
                     "reused": False,
                     "avatar_image_url": image_url
                 })
-            
+                
         except Exception as e:
+            print(f"Error in generate_manual_outfit: {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({
                 "success": False,
                 "error": f"Failed to generate outfit: {str(e)}"

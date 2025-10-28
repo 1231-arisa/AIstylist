@@ -28,4 +28,7 @@ apscheduler>=3.11.0
 
 # Alternative AI models
 together>=1.5.0
-Flask-Dance==7.0.0 
+
+# RAG system dependencies (FREE VERSION)
+scikit-learn>=1.3.0
+# sentence-transformers>=2.2.2  # 有料版のみ（未使用のRAGシステムで使用） 
