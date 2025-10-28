@@ -1,0 +1,35 @@
+# Hugging Face Spaces requirements for AIstylist
+# Core web framework
+Flask==3.0.0
+Werkzeug==3.0.0
+requests==2.31.0
+
+# OpenAI API dependencies
+openai==1.92.2
+python-dotenv==1.1.1
+
+# Image processing dependencies
+Pillow==11.2.1
+numpy==1.26.4
+pillow-heif>=1.1.0
+
+# Timezone handling
+pytz==2024.1
+
+# OAuth for Google login
+Flask-Dance==7.0.0
+
+# Payment processing
+stripe==10.12.0
+
+# Scheduled tasks
+apscheduler>=3.11.0
+
+# Alternative AI models
+together>=1.5.0
+
+# RAG system dependencies (FREE VERSION)
+scikit-learn>=1.3.0
+
+# Hugging Face specific
+huggingface_hub>=0.20.0
